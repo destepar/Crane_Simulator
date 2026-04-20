@@ -108,15 +108,15 @@
             </div>
             <div class="control-group">
                 <label>Rotación Cabina (°) <span class="val-badge" id="valRot">30</span></label>
-                <input type="range" id="rot" min="-180" max="180" step="1" value="30">
+                <input type="range" id="rot" min="-180" max="180" step="0.1" value="30">
             </div>
             <div class="control-group">
                 <label>Extensión Pluma (m) <span class="val-badge" id="valExt">35</span></label>
-                <input type="range" id="ext" min="10" max="60" step="1" value="35">
+                <input type="range" id="ext" min="10" max="60" step="0.1" value="35">
             </div>
             <div class="control-group">
                 <label>Ángulo Pluma (°) <span class="val-badge" id="valAng">50</span></label>
-                <input type="range" id="ang" min="10" max="85" step="1" value="50">
+                <input type="range" id="ang" min="10" max="85" step="0.1" value="50">
             </div>
         </div>
 
@@ -244,14 +244,15 @@
         const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.15, depthWrite: false });
         const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.3 });
 
-        const citySize = 250; 
-        const safeZone = 50; 
+        const citySize = 350; 
+        const safeZone = 80; 
 
-        for(let x = -citySize; x <= citySize; x += 40) {
-            for(let z = -citySize; z <= citySize; z += 40) {
+        for(let x = -citySize; x <= citySize; x += 60) {
+            for(let z = -citySize; z <= citySize; z += 60) {
                 if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
+                if (Math.random() > 0.6) continue; // 40% de probabilidad de no generar edificio
                 
-                let offsetX = (Math.random() - 0.5) * 15;
+                let offsetX = (Math.random() - 0.5) * 10;
                 let offsetZ = (Math.random() - 0.5) * 15;
                 
                 let height = 30 + Math.random() * 90; 
@@ -323,14 +324,17 @@
         const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
         const matCable = new THREE.LineBasicMaterial({ color: 0xc9d1d9, linewidth: 2 });
 
+        const craneGroup = new THREE.Group();
+        scene.add(craneGroup);
+
         const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 8), matDark);
-        baseMesh.position.y = 1; baseMesh.castShadow = true; scene.add(baseMesh);
+        baseMesh.position.y = 1; baseMesh.castShadow = true; craneGroup.add(baseMesh);
 
         const pedestalMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2, 32), matDark);
-        pedestalMesh.position.y = 3; scene.add(pedestalMesh);
+        pedestalMesh.position.y = 3; craneGroup.add(pedestalMesh);
 
         const cabinGroup = new THREE.Group();
-        cabinGroup.position.y = 4; scene.add(cabinGroup);
+        cabinGroup.position.y = 4; craneGroup.add(cabinGroup);
 
         const cabinMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 6), matYellow);
         cabinMesh.castShadow = true; cabinGroup.add(cabinMesh);
@@ -353,7 +357,23 @@
         const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), matRed);
         loadMesh.castShadow = true; scene.add(loadMesh);
 
-        // --- 6. BUCLE FÍSICO ---
+        // --- 6. BUCLE FÍSICO Y CONTROLES ---
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.key.toLowerCase()] = false; });
+
+        function checkCraneCollision(newX, newZ) {
+            const craneHalfW = 6; // baseMesh es 12x2x8
+            const craneHalfD = 4;
+            for(let obs of obstacles) {
+                if(newX + craneHalfW > obs.minX && newX - craneHalfW < obs.maxX &&
+                   newZ + craneHalfD > obs.minZ && newZ - craneHalfD < obs.maxZ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         let loadYPos = 10;
         let lastTime = performance.now();
         let frameCount = 0;
@@ -369,20 +389,31 @@
             frameCount++;
             if(frameCount % 10 === 0) document.getElementById('fps').innerText = `FPS: ${Math.round(1/dt)}`;
 
+            let elRot = document.getElementById('rot');
+            let elExt = document.getElementById('ext');
+            let elAng = document.getElementById('ang');
+            
+            if(keys['q']) elRot.value = parseFloat(elRot.value) - 45 * dt;
+            if(keys['e']) elRot.value = parseFloat(elRot.value) + 45 * dt;
+            if(keys['r']) elExt.value = parseFloat(elExt.value) + 15 * dt;
+            if(keys['f']) elExt.value = parseFloat(elExt.value) - 15 * dt;
+            if(keys['t']) elAng.value = parseFloat(elAng.value) + 20 * dt;
+            if(keys['g']) elAng.value = parseFloat(elAng.value) - 20 * dt;
+
             const massTon = parseFloat(document.getElementById('m').value);
             const speed = parseFloat(document.getElementById('v').value);
-            const rotDeg = parseFloat(document.getElementById('rot').value);
-            const ext = parseFloat(document.getElementById('ext').value);
-            const angDeg = parseFloat(document.getElementById('ang').value);
+            const rotDeg = parseFloat(elRot.value);
+            const ext = parseFloat(elExt.value);
+            const angDeg = parseFloat(elAng.value);
             
             const rotRad = rotDeg * (Math.PI / 180);
             const angRad = angDeg * (Math.PI / 180);
 
             document.getElementById('valMass').innerText = massTon.toFixed(1);
             document.getElementById('valSpeed').innerText = speed.toFixed(1);
-            document.getElementById('valRot').innerText = rotDeg;
+            document.getElementById('valRot').innerText = rotDeg.toFixed(1);
             document.getElementById('valExt').innerText = ext.toFixed(1);
-            document.getElementById('valAng').innerText = angDeg;
+            document.getElementById('valAng').innerText = angDeg.toFixed(1);
 
             const radius = ext * Math.cos(angRad); 
             const moment = massTon * radius; 
@@ -426,6 +457,37 @@
             ctxLoad.beginPath(); ctxLoad.arc((radius / 70) * wL, hL - ((massTon / 60) * hL), 6, 0, Math.PI*2);
             ctxLoad.fillStyle = isOverload ? '#f85149' : '#58a6ff'; ctxLoad.fill(); ctxLoad.strokeStyle = '#fff'; ctxLoad.stroke();
 
+            // NAVEGACIÓN DE LA GRÚA (ESTILO VEHÍCULO)
+            const moveSpeed = 25 * dt;
+            const rotSpeed = 1.5 * dt;
+
+            if(keys.ArrowLeft || keys.a) craneGroup.rotation.y += rotSpeed;
+            if(keys.ArrowRight || keys.d) craneGroup.rotation.y -= rotSpeed;
+
+            let moveDir = 0;
+            if(keys.ArrowUp || keys.w) moveDir = -moveSpeed;
+            if(keys.ArrowDown || keys.s) moveDir = moveSpeed;
+
+            if(moveDir !== 0) {
+                let moveX = Math.sin(craneGroup.rotation.y) * moveDir;
+                let moveZ = Math.cos(craneGroup.rotation.y) * moveDir;
+                
+                let oldX = craneGroup.position.x;
+                let oldZ = craneGroup.position.z;
+                let nextX = oldX + moveX;
+                let nextZ = oldZ + moveZ;
+                
+                if(!checkCraneCollision(nextX, oldZ)) craneGroup.position.x = nextX;
+                if(!checkCraneCollision(craneGroup.position.x, nextZ)) craneGroup.position.z = nextZ;
+
+                let dX = craneGroup.position.x - oldX;
+                let dZ = craneGroup.position.z - oldZ;
+
+                camera.position.x += dX;
+                camera.position.z += dZ;
+                controls.target.set(craneGroup.position.x, 15, craneGroup.position.z);
+            }
+
             // CINEMÁTICA Y FÍSICA
             cabinGroup.rotation.y = rotRad;
             boomPivot.rotation.z = angRad;
@@ -443,7 +505,7 @@
             // === FÍSICA DE COLISIONES CON LA CIUDAD ===
             // 1. Preguntamos qué tan alto es el suelo/edificio directamente debajo de la punta de la pluma
             const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
-            const minimumDropHeight = groundH + (size / 2); // Altura del edificio + mitad de la caja
+            const minimumDropHeight = groundH + size; // Altura del edificio + mitad de la caja
 
             if(speed > 0) {
                 loadYPos += speed * dt * 8 * loadDirection; 
