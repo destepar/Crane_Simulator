@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemelo Digital 3D: Metrópolis Física</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Roboto Mono', monospace; 
+            background-color: #050505; 
+            color: #e0e0e0; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Header */
+        header {
+            background: #111;
+            padding: 10px 20px;
+            border-bottom: 2px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #58a6ff;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+        .status-indicator {
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            background: #2ea043;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        /* Main Grid Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            flex-grow: 1;
+            gap: 2px;
+            background: #333; 
+        }
+
+        .panel { background: #0a0a0a; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
+
+        /* Controls Panel */
+        .control-group { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #222; }
+        .control-group label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #8b949e; margin-bottom: 10px; }
+        .val-badge { color: #58a6ff; font-weight: bold; font-family: 'Orbitron', sans-serif;}
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #58a6ff; cursor: pointer; margin-top: -7px; box-shadow: 0 0 10px rgba(88, 166, 255, 0.4); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #30363d; border-radius: 2px; }
+
+        /* Camera View 3D */
+        .camera-view { position: relative; background: #000; overflow: hidden; }
+        #canvas3DContainer { width: 100%; height: 100%; display: block; }
+        .cam-overlay { position: absolute; top: 15px; left: 15px; color: #58a6ff; font-size: 0.8rem; pointer-events: none; text-shadow: 0 0 5px rgba(88,166,255,0.5); z-index: 10; font-family: 'Orbitron', sans-serif;}
+        .help-overlay { position: absolute; bottom: 15px; left: 15px; color: rgba(255,255,255,0.4); font-size: 0.7rem; pointer-events: none; z-index: 10; }
+
+        /* Telemetry Panel */
+        .telemetry-card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #222; }
+        .card-title { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        
+        /* Gauges */
+        .gauges-container { display: flex; justify-content: space-around; }
+        .gauge-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .gauge { width: 100px; height: 100px; border-radius: 50%; display: flex; justify-content: center; align-items: center; position: relative; background: conic-gradient(#3fb950 var(--p), #222 0deg); }
+        .gauge::before { content: ""; position: absolute; width: 80px; height: 80px; background: #161b22; border-radius: 50%; }
+        .gauge-val { position: relative; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: bold; }
+        
+        /* Load Chart */
+        #loadChartCanvas { width: 100%; height: 200px; background: #0d1117; border: 1px solid #333; border-radius: 4px; }
+        
+        /* Big Data */
+        .big-data { font-family: 'Orbitron', sans-serif; font-size: 2rem; color: #f6e05e; text-align: center; margin: 10px 0; }
+        .warning-text { color: #f85149; text-shadow: 0 0 10px rgba(248,81,73,0.5); animation: blink 1s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SYS-TEL // LIEB-SIM 3D (COLISIONES URBANAS ACTIVAS)</h1>
+        <div class="status-indicator" id="mainStatus">SISTEMA NOMINAL</div>
+    </header>
+
+    <div class="dashboard">
+        <div class="panel">
+            <div class="control-group">
+                <label>Masa de Carga (Ton) <span class="val-badge" id="valMass">10.0</span></label>
+                <input type="range" id="m" min="0.5" max="50" step="0.5" value="10">
+            </div>
+            <div class="control-group">
+                <label>Velocidad Cabrestante (m/s) <span class="val-badge" id="valSpeed">1.0</span></label>
+                <input type="range" id="v" min="0" max="2.5" step="0.1" value="1.0">
+            </div>
+            <div class="control-group">
+                <label>Rotación Cabina (°) <span class="val-badge" id="valRot">30</span></label>
+                <input type="range" id="rot" min="-180" max="180" step="1" value="30">
+            </div>
+            <div class="control-group">
+                <label>Extensión Pluma (m) <span class="val-badge" id="valExt">35</span></label>
+                <input type="range" id="ext" min="10" max="60" step="1" value="35">
+            </div>
+            <div class="control-group">
+                <label>Ángulo Pluma (°) <span class="val-badge" id="valAng">50</span></label>
+                <input type="range" id="ang" min="10" max="85" step="1" value="50">
+            </div>
+        </div>
+
+        <div class="camera-view">
+            <div class="cam-overlay">CAM_01 // MOTOR DE FÍSICA: MATRIZ AABB ONLINE<br><span id="fps">FPS: 60</span></div>
+            <div class="help-overlay">Ratón: Clic Izq para Orbitar | Rueda para Zoom | Clic Der para Desplazar</div>
+            <div id="canvas3DContainer"></div>
+        </div>
+
+        <div class="panel">
+            <div class="telemetry-card">
+                <div class="card-title">Rendimiento Motor Diésel</div>
+                <div class="gauges-container">
+                    <div class="gauge-wrapper">
+                        <div class="gauge" id="gaugeHP" style="--p: 0deg;">
+                            <span class="gauge-val" id="outHP">0</span>
+                        </div>
+                        <span style="font-size: 0.8rem; color: #888;">Potencia (HP)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="card-title">Diagrama LMI (Load Moment)</div>
+                <canvas id="loadChartCanvas"></canvas>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.8rem;">
+                    <span>Radio: <strong id="outRadius" style="color:#58a6ff">0.0 m</strong></span>
+                    <span>Carga: <strong id="outLoad" style="color:#f6e05e">0.0 T</strong></span>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="card-title">Momento Estructural Actual</div>
+                <div class="big-data" id="outMoment">0.0</div>
+                <div style="text-align: center; color: #888; font-size: 0.9rem;">Ton-metro</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- 1. CONFIGURACIÓN LMI ---
+        const loadCanvas = document.getElementById('loadChartCanvas');
+        const ctxLoad = loadCanvas.getContext('2d');
+        const MAX_MOMENT = 800; 
+        const MAX_HP_ENGINE = 800; 
+        const G = 9.81;
+
+        function resize2DCanvas() {
+            loadCanvas.width = loadCanvas.clientWidth;
+            loadCanvas.height = loadCanvas.clientHeight;
+        }
+        window.addEventListener('resize', resize2DCanvas);
+        resize2DCanvas();
+
+        // --- 2. CONFIGURACIÓN DEL ENTORNO 3D ---
+        const container3D = document.getElementById('canvas3DContainer');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05080f); 
+        
+        // CORRECCIÓN 1: Niebla extendida para permitir zoom out
+        scene.fog = new THREE.Fog(0x05080f, 150, 800);
+
+        // CORRECCIÓN 2: Rango de cámara ampliado
+        const camera = new THREE.PerspectiveCamera(50, container3D.clientWidth / container3D.clientHeight, 0.1, 2000);
+        camera.position.set(-80, 60, 100);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container3D.clientWidth, container3D.clientHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container3D.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 15, 0);
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; 
+        controls.update();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container3D.clientWidth / container3D.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container3D.clientWidth, container3D.clientHeight);
+        });
+
+        // --- 3. ILUMINACIÓN MEJORADA (Para vistas lejanas) ---
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(150, 250, 100);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 600;
+        // Ampliamos el área de sombras para que cubra toda la ciudad
+        dirLight.shadow.camera.left = -200;
+        dirLight.shadow.camera.right = 200;
+        dirLight.shadow.camera.top = 200;
+        dirLight.shadow.camera.bottom = -200;
+        scene.add(dirLight);
+
+        // --- 4. GENERACIÓN PROCEDURAL Y MATRIZ DE COLISIONES ---
+        const cityGroup = new THREE.Group();
+        scene.add(cityGroup);
+
+        // Array para almacenar las "Cajas de Colisión" (Bounding Boxes)
+        const obstacles = [];
+
+        const planeGeo = new THREE.PlaneGeometry(800, 800);
+        const planeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, depthWrite: false });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        plane.rotation.x = -Math.PI / 2;
+        plane.receiveShadow = true;
+        scene.add(plane);
+
+        const gridHelper = new THREE.GridHelper(800, 200, 0x1f6feb, 0x0d1117);
+        gridHelper.position.y = 0.1; 
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.4;
+        scene.add(gridHelper);
+
+        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.15, depthWrite: false });
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.3 });
+
+        const citySize = 250; 
+        const safeZone = 50; 
+
+        for(let x = -citySize; x <= citySize; x += 40) {
+            for(let z = -citySize; z <= citySize; z += 40) {
+                if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
+                
+                let offsetX = (Math.random() - 0.5) * 15;
+                let offsetZ = (Math.random() - 0.5) * 15;
+                
+                let height = 30 + Math.random() * 90; 
+                let width = 15 + Math.random() * 15;
+                let depth = 15 + Math.random() * 15;
+
+                let posX = x + offsetX;
+                let posZ = z + offsetZ;
+
+                let geo = new THREE.BoxGeometry(width, height, depth);
+                geo.translate(0, height / 2, 0);
+
+                let bldg = new THREE.Mesh(geo, bldgMat);
+                bldg.position.set(posX, 0, posZ);
+                cityGroup.add(bldg);
+
+                let edges = new THREE.EdgesGeometry(geo);
+                let lines = new THREE.LineSegments(edges, edgeMat);
+                lines.position.copy(bldg.position);
+                cityGroup.add(lines);
+
+                // GUARDAR OBSTÁCULO PARA COLISIÓN
+                obstacles.push({
+                    minX: posX - width / 2,
+                    maxX: posX + width / 2,
+                    minZ: posZ - depth / 2,
+                    maxZ: posZ + depth / 2,
+                    height: height
+                });
+            }
+        }
+
+        // Añadir Materiales (Contenedores)
+        const crateGeo = new THREE.BoxGeometry(6, 6, 12);
+        const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b949e });
+        for(let i=0; i<4; i++) {
+            let cx = 20 + i*12;
+            let cz = -15 - i*8;
+            
+            let crate = new THREE.Mesh(crateGeo, crateMat);
+            crate.position.set(cx, 3, cz);
+            crate.castShadow = true;
+            crate.receiveShadow = true;
+            scene.add(crate);
+
+            // Colisión para contenedores
+            obstacles.push({
+                minX: cx - 3, maxX: cx + 3,
+                minZ: cz - 6, maxZ: cz + 6,
+                height: 6
+            });
+        }
+
+        // FUNCIÓN ESCÁNER DE SUELO (Raycast Lógico)
+        function getGroundHeightAt(x, z) {
+            let maxH = 0; // Por defecto el asfalto es 0
+            for(let obs of obstacles) {
+                // Si la coordenada está dentro de la base del edificio
+                if(x >= obs.minX && x <= obs.maxX && z >= obs.minZ && z <= obs.maxZ) {
+                    if(obs.height > maxH) maxH = obs.height;
+                }
+            }
+            return maxH;
+        }
+
+        // --- 5. MODELO DE GRÚA ---
+        const matYellow = new THREE.MeshStandardMaterial({ color: 0xf6e05e, roughness: 0.4 });
+        const matDark = new THREE.MeshStandardMaterial({ color: 0x21262d, roughness: 0.7 });
+        const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
+        const matCable = new THREE.LineBasicMaterial({ color: 0xc9d1d9, linewidth: 2 });
+
+        const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 8), matDark);
+        baseMesh.position.y = 1; baseMesh.castShadow = true; scene.add(baseMesh);
+
+        const pedestalMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2, 32), matDark);
+        pedestalMesh.position.y = 3; scene.add(pedestalMesh);
+
+        const cabinGroup = new THREE.Group();
+        cabinGroup.position.y = 4; scene.add(cabinGroup);
+
+        const cabinMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 6), matYellow);
+        cabinMesh.castShadow = true; cabinGroup.add(cabinMesh);
+
+        const counterweight = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 6), matDark);
+        counterweight.position.set(-4, 2, 0); cabinGroup.add(counterweight);
+
+        const boomPivot = new THREE.Group();
+        boomPivot.position.set(1, 3, 0); cabinGroup.add(boomPivot);
+
+        const boomBaseGeo = new THREE.BoxGeometry(15, 2, 2); boomBaseGeo.translate(7.5, 0, 0); 
+        const boomBaseMesh = new THREE.Mesh(boomBaseGeo, matYellow); boomBaseMesh.castShadow = true; boomPivot.add(boomBaseMesh);
+
+        const boomExtGeo = new THREE.BoxGeometry(1, 1.5, 1.5); boomExtGeo.translate(0.5, 0, 0);
+        const boomExtMesh = new THREE.Mesh(boomExtGeo, new THREE.MeshStandardMaterial({color: 0xd69e2e})); boomExtMesh.castShadow = true; boomPivot.add(boomExtMesh);
+
+        const cableGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,-10,0)]);
+        const cableLine = new THREE.Line(cableGeo, matCable); scene.add(cableLine); 
+
+        const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), matRed);
+        loadMesh.castShadow = true; scene.add(loadMesh);
+
+        // --- 6. BUCLE FÍSICO ---
+        let loadYPos = 10;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let loadDirection = -1; 
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const timeNow = performance.now();
+            const dt = (timeNow - lastTime) / 1000;
+            lastTime = timeNow;
+            
+            frameCount++;
+            if(frameCount % 10 === 0) document.getElementById('fps').innerText = `FPS: ${Math.round(1/dt)}`;
+
+            const massTon = parseFloat(document.getElementById('m').value);
+            const speed = parseFloat(document.getElementById('v').value);
+            const rotDeg = parseFloat(document.getElementById('rot').value);
+            const ext = parseFloat(document.getElementById('ext').value);
+            const angDeg = parseFloat(document.getElementById('ang').value);
+            
+            const rotRad = rotDeg * (Math.PI / 180);
+            const angRad = angDeg * (Math.PI / 180);
+
+            document.getElementById('valMass').innerText = massTon.toFixed(1);
+            document.getElementById('valSpeed').innerText = speed.toFixed(1);
+            document.getElementById('valRot').innerText = rotDeg;
+            document.getElementById('valExt').innerText = ext.toFixed(1);
+            document.getElementById('valAng').innerText = angDeg;
+
+            const radius = ext * Math.cos(angRad); 
+            const moment = massTon * radius; 
+            const power_kW = (massTon * 1000 * G * speed) / 1000 / 0.75; 
+            const power_HP = power_kW * 1.34102;
+            const isOverload = moment > MAX_MOMENT;
+
+            document.getElementById('outHP').innerText = power_HP.toFixed(0);
+            let colorHP = power_HP > MAX_HP_ENGINE * 0.8 ? '#f85149' : (power_HP > MAX_HP_ENGINE * 0.5 ? '#d29922' : '#3fb950');
+            document.getElementById('gaugeHP').style.setProperty('--p', `${Math.min((power_HP / MAX_HP_ENGINE) * 360, 360)}deg`);
+            document.getElementById('gaugeHP').style.background = `conic-gradient(${colorHP} var(--p), #222 0deg)`;
+
+            document.getElementById('outRadius').innerText = radius.toFixed(1) + ' m';
+            document.getElementById('outLoad').innerText = massTon.toFixed(1) + ' T';
+            
+            const momentEl = document.getElementById('outMoment');
+            const mainStatus = document.getElementById('mainStatus');
+            momentEl.innerText = moment.toFixed(1);
+
+            if (isOverload) {
+                momentEl.className = 'big-data warning-text';
+                mainStatus.innerText = "PELIGRO: VUELCO ESTRUCTURAL";
+                mainStatus.style.background = "#f85149";
+                loadMesh.material.color.setHex(0xf85149); 
+            } else {
+                momentEl.className = 'big-data';
+                momentEl.style.color = moment > MAX_MOMENT * 0.8 ? '#d29922' : '#f6e05e';
+                mainStatus.innerText = moment > MAX_MOMENT * 0.8 ? "ADVERTENCIA: LÍMITE LMI" : "SISTEMA NOMINAL";
+                mainStatus.style.background = moment > MAX_MOMENT * 0.8 ? "#d29922" : "#2ea043";
+                loadMesh.material.color.setHex(0xe11d48); 
+            }
+
+            // LMI
+            ctxLoad.clearRect(0, 0, loadCanvas.width, loadCanvas.height);
+            const wL = loadCanvas.width, hL = loadCanvas.height;
+            ctxLoad.beginPath(); ctxLoad.moveTo(0, hL);
+            for (let r = 1; r <= 70; r++) { ctxLoad.lineTo((r / 70) * wL, hL - ((Math.min(MAX_MOMENT / r, 60) / 60) * hL)); }
+            ctxLoad.lineTo(wL, hL); ctxLoad.fillStyle = 'rgba(63, 185, 80, 0.15)'; ctxLoad.fill();
+            ctxLoad.strokeStyle = '#3fb950'; ctxLoad.lineWidth = 2; ctxLoad.stroke();
+
+            ctxLoad.beginPath(); ctxLoad.arc((radius / 70) * wL, hL - ((massTon / 60) * hL), 6, 0, Math.PI*2);
+            ctxLoad.fillStyle = isOverload ? '#f85149' : '#58a6ff'; ctxLoad.fill(); ctxLoad.strokeStyle = '#fff'; ctxLoad.stroke();
+
+            // CINEMÁTICA Y FÍSICA
+            cabinGroup.rotation.y = rotRad;
+            boomPivot.rotation.z = angRad;
+
+            const extLength = Math.max(0.1, ext - 15);
+            boomExtMesh.scale.x = extLength;
+            boomExtMesh.position.x = 15; 
+
+            const tipLocal = new THREE.Vector3(15 + extLength, 0, 0);
+            const tipWorld = tipLocal.clone().applyMatrix4(boomPivot.matrixWorld);
+
+            const size = 1.5 + (massTon/50)*2.5; 
+            loadMesh.scale.set(size, size, size);
+
+            // === FÍSICA DE COLISIONES CON LA CIUDAD ===
+            // 1. Preguntamos qué tan alto es el suelo/edificio directamente debajo de la punta de la pluma
+            const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
+            const minimumDropHeight = groundH + (size / 2); // Altura del edificio + mitad de la caja
+
+            if(speed > 0) {
+                loadYPos += speed * dt * 8 * loadDirection; 
+                
+                // Limite Inferior Dinámico (Choca con el asfalto o con el techo del edificio)
+                if(loadYPos <= minimumDropHeight) {
+                    loadYPos = minimumDropHeight;
+                    loadDirection = 1; // Sube
+                }
+                
+                if(loadYPos >= tipWorld.y - 2) {
+                    loadYPos = tipWorld.y - 2; 
+                    loadDirection = -1; // Baja
+                }
+            } else {
+                if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
+                if (loadYPos > tipWorld.y - 2) loadYPos = tipWorld.y - 2;
+            }
+
+            const cablePositions = cableLine.geometry.attributes.position.array;
+            cablePositions[0] = tipWorld.x; cablePositions[1] = tipWorld.y; cablePositions[2] = tipWorld.z;
+            cablePositions[3] = tipWorld.x; cablePositions[4] = loadYPos; cablePositions[5] = tipWorld.z;
+            cableLine.geometry.attributes.position.needsUpdate = true;
+
+            loadMesh.position.set(tipWorld.x, loadYPos, tipWorld.z);
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
