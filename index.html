@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,16 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap');
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { 
-            font-family: 'Roboto Mono', monospace; 
-            background-color: #050505; 
-            color: #e0e0e0; 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #050505;
+            color: #e0e0e0;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -28,12 +33,14 @@
             justify-content: space-between;
             align-items: center;
         }
+
         header h1 {
             font-family: 'Orbitron', sans-serif;
             color: #58a6ff;
             font-size: 1.2rem;
             letter-spacing: 2px;
         }
+
         .status-indicator {
             padding: 5px 15px;
             border-radius: 4px;
@@ -49,46 +56,189 @@
             grid-template-columns: 350px 1fr 400px;
             flex-grow: 1;
             gap: 2px;
-            background: #333; 
+            background: #333;
         }
 
-        .panel { background: #0a0a0a; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
+        .panel {
+            background: #0a0a0a;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
 
         /* Controls Panel */
-        .control-group { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #222; }
-        .control-group label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #8b949e; margin-bottom: 10px; }
-        .val-badge { color: #58a6ff; font-weight: bold; font-family: 'Orbitron', sans-serif;}
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #58a6ff; cursor: pointer; margin-top: -7px; box-shadow: 0 0 10px rgba(88, 166, 255, 0.4); }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #30363d; border-radius: 2px; }
+        .control-group {
+            background: #161b22;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        .val-badge {
+            color: #58a6ff;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #58a6ff;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #30363d;
+            border-radius: 2px;
+        }
 
         /* Camera View 3D */
-        .camera-view { position: relative; background: #000; overflow: hidden; }
-        #canvas3DContainer { width: 100%; height: 100%; display: block; }
-        .cam-overlay { position: absolute; top: 15px; left: 15px; color: #58a6ff; font-size: 0.8rem; pointer-events: none; text-shadow: 0 0 5px rgba(88,166,255,0.5); z-index: 10; font-family: 'Orbitron', sans-serif;}
-        .help-overlay { position: absolute; bottom: 15px; left: 15px; color: rgba(255,255,255,0.4); font-size: 0.7rem; pointer-events: none; z-index: 10; }
+        .camera-view {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #canvas3DContainer {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .cam-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #58a6ff;
+            font-size: 0.8rem;
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(88, 166, 255, 0.5);
+            z-index: 10;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .help-overlay {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.7rem;
+            pointer-events: none;
+            z-index: 10;
+        }
 
         /* Telemetry Panel */
-        .telemetry-card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #222; }
-        .card-title { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        
-        /* Gauges */
-        .gauges-container { display: flex; justify-content: space-around; }
-        .gauge-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .gauge { width: 100px; height: 100px; border-radius: 50%; display: flex; justify-content: center; align-items: center; position: relative; background: conic-gradient(#3fb950 var(--p), #222 0deg); }
-        .gauge::before { content: ""; position: absolute; width: 80px; height: 80px; background: #161b22; border-radius: 50%; }
-        .gauge-val { position: relative; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: bold; }
-        
-        /* Load Chart */
-        #loadChartCanvas { width: 100%; height: 200px; background: #0d1117; border: 1px solid #333; border-radius: 4px; }
-        
-        /* Big Data */
-        .big-data { font-family: 'Orbitron', sans-serif; font-size: 2rem; color: #f6e05e; text-align: center; margin: 10px 0; }
-        .warning-text { color: #f85149; text-shadow: 0 0 10px rgba(248,81,73,0.5); animation: blink 1s infinite; }
+        .telemetry-card {
+            background: #161b22;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
 
-        @keyframes blink { 50% { opacity: 0.5; } }
+        .card-title {
+            font-size: 0.8rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* Gauges */
+        .gauges-container {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .gauge-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gauge {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: conic-gradient(#3fb950 var(--p), #222 0deg);
+        }
+
+        .gauge::before {
+            content: "";
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #161b22;
+            border-radius: 50%;
+        }
+
+        .gauge-val {
+            position: relative;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Load Chart */
+        #loadChartCanvas {
+            width: 100%;
+            height: 200px;
+            background: #0d1117;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        /* Big Data */
+        .big-data {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            color: #f6e05e;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .warning-text {
+            color: #f85149;
+            text-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0.5;
+            }
+        }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -121,7 +271,8 @@
         </div>
 
         <div class="camera-view">
-            <div class="cam-overlay">CAM_01 // MOTOR DE FÍSICA: MATRIZ AABB ONLINE<br><span id="fps">FPS: 60</span></div>
+            <div class="cam-overlay">CAM_01 // MOTOR DE FÍSICA: MATRIZ AABB ONLINE<br><span id="fps">FPS: 60</span>
+            </div>
             <div class="help-overlay">Ratón: Clic Izq para Orbitar | Rueda para Zoom | Clic Der para Desplazar</div>
             <div id="canvas3DContainer"></div>
         </div>
@@ -158,13 +309,14 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <script>
         // --- 1. CONFIGURACIÓN LMI ---
         const loadCanvas = document.getElementById('loadChartCanvas');
         const ctxLoad = loadCanvas.getContext('2d');
-        const MAX_MOMENT = 800; 
-        const MAX_HP_ENGINE = 800; 
+        const MAX_MOMENT = 800;
+        const MAX_HP_ENGINE = 800;
         const G = 9.81;
 
         function resize2DCanvas() {
@@ -177,8 +329,10 @@
         // --- 2. CONFIGURACIÓN DEL ENTORNO 3D ---
         const container3D = document.getElementById('canvas3DContainer');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x05080f); 
-        
+        scene.background = new THREE.Color(0x05080f);
+
+
+
         // CORRECCIÓN 1: Niebla extendida para permitir zoom out
         scene.fog = new THREE.Fog(0x05080f, 150, 800);
 
@@ -190,11 +344,14 @@
         renderer.setSize(container3D.clientWidth, container3D.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         container3D.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 15, 0);
-        controls.maxPolarAngle = Math.PI / 2 - 0.02; 
+        controls.maxPolarAngle = Math.PI / 2 - 0.02;
         controls.update();
 
         window.addEventListener('resize', () => {
@@ -203,11 +360,17 @@
             renderer.setSize(container3D.clientWidth, container3D.clientHeight);
         });
 
+        // --- LUZ DE APOYO (Adjunta a la cámara) ---
+        // Esta luz sigue a la cámara para que nunca veamos un lado "negro"
+        const fillLight = new THREE.PointLight(0xffffff, 0.5); // Luz suave
+        camera.add(fillLight); // ¡IMPORTANTE: La hacemos hija de la cámara!
+        scene.add(camera);     // Añadimos la cámara a la escena para que la luz actúe
+
         // --- 3. ILUMINACIÓN MEJORADA (Para vistas lejanas) ---
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
         scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
         dirLight.position.set(150, 250, 100);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 2048;
@@ -220,6 +383,16 @@
         dirLight.shadow.camera.top = 200;
         dirLight.shadow.camera.bottom = -200;
         scene.add(dirLight);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight.position.set(-10, 15, 20);
+        scene.add(directionalLight);
+
+        // Opcional: Aumentamos un poco la intensidad de la luz del cielo (hemiLight)
+        hemiLight.intensity = 2.0;
 
         // --- 4. GENERACIÓN PROCEDURAL Y MATRIZ DE COLISIONES ---
         const cityGroup = new THREE.Group();
@@ -236,7 +409,7 @@
         scene.add(plane);
 
         const gridHelper = new THREE.GridHelper(800, 200, 0x1f6feb, 0x0d1117);
-        gridHelper.position.y = 0.1; 
+        gridHelper.position.y = 0.1;
         gridHelper.material.transparent = true;
         gridHelper.material.opacity = 0.4;
         scene.add(gridHelper);
@@ -244,18 +417,18 @@
         const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.15, depthWrite: false });
         const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.3 });
 
-        const citySize = 350; 
-        const safeZone = 80; 
+        const citySize = 350;
+        const safeZone = 80;
 
-        for(let x = -citySize; x <= citySize; x += 60) {
-            for(let z = -citySize; z <= citySize; z += 60) {
+        for (let x = -citySize; x <= citySize; x += 60) {
+            for (let z = -citySize; z <= citySize; z += 60) {
                 if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
                 if (Math.random() > 0.6) continue; // 40% de probabilidad de no generar edificio
-                
+
                 let offsetX = (Math.random() - 0.5) * 10;
                 let offsetZ = (Math.random() - 0.5) * 15;
-                
-                let height = 30 + Math.random() * 90; 
+
+                let height = 30 + Math.random() * 90;
                 let width = 15 + Math.random() * 15;
                 let depth = 15 + Math.random() * 15;
 
@@ -288,10 +461,10 @@
         // Añadir Materiales (Contenedores)
         const crateGeo = new THREE.BoxGeometry(6, 6, 12);
         const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b949e });
-        for(let i=0; i<4; i++) {
-            let cx = 20 + i*12;
-            let cz = -15 - i*8;
-            
+        for (let i = 0; i < 4; i++) {
+            let cx = 20 + i * 12;
+            let cz = -15 - i * 8;
+
             let crate = new THREE.Mesh(crateGeo, crateMat);
             crate.position.set(cx, 3, cz);
             crate.castShadow = true;
@@ -309,65 +482,163 @@
         // FUNCIÓN ESCÁNER DE SUELO (Raycast Lógico)
         function getGroundHeightAt(x, z) {
             let maxH = 0; // Por defecto el asfalto es 0
-            for(let obs of obstacles) {
+            for (let obs of obstacles) {
                 // Si la coordenada está dentro de la base del edificio
-                if(x >= obs.minX && x <= obs.maxX && z >= obs.minZ && z <= obs.maxZ) {
-                    if(obs.height > maxH) maxH = obs.height;
+                if (x >= obs.minX && x <= obs.maxX && z >= obs.minZ && z <= obs.maxZ) {
+                    if (obs.height > maxH) maxH = obs.height;
                 }
             }
             return maxH;
         }
 
         // --- 5. MODELO DE GRÚA ---
-        const matYellow = new THREE.MeshStandardMaterial({ color: 0xf6e05e, roughness: 0.4 });
-        const matDark = new THREE.MeshStandardMaterial({ color: 0x21262d, roughness: 0.7 });
-        const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
-        const matCable = new THREE.LineBasicMaterial({ color: 0xc9d1d9, linewidth: 2 });
-
-        const craneGroup = new THREE.Group();
+        const craneGroup = new THREE.Group(); // <-- ¡ESTA FALTABA!
         scene.add(craneGroup);
 
-        const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(12, 2, 8), matDark);
-        baseMesh.position.y = 1; baseMesh.castShadow = true; craneGroup.add(baseMesh);
+        let chassisNode = null;
+        let cabinNode = null;
+        let boomNode = null;
+        let rigArms = [];
+        let cylBase = null; // CILINDRO_BASE
+        let cylStem = null; // CILINDRO_VASTAGO
+        let craneLoaded = false;
+        let wheels = []; // Define esto arriba, junto a tus otras variables
+        let flecheNode = null;
 
-        const pedestalMesh = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 2, 32), matDark);
-        pedestalMesh.position.y = 3; craneGroup.add(pedestalMesh);
+        const loader = new THREE.GLTFLoader();
+        loader.load('Assets3D/LTM 1110 LIEBHERR.gltf', (gltf) => {
+            const model = gltf.scene;
+            model.scale.set(4, 4, 4);
+            craneGroup.add(model);
 
-        const cabinGroup = new THREE.Group();
-        cabinGroup.position.y = 4; craneGroup.add(cabinGroup);
+            model.traverse((node) => {
 
-        const cabinMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 6), matYellow);
-        cabinMesh.castShadow = true; cabinGroup.add(cabinMesh);
 
-        const counterweight = new THREE.Mesh(new THREE.BoxGeometry(4, 5, 6), matDark);
-        counterweight.position.set(-4, 2, 0); cabinGroup.add(counterweight);
 
-        const boomPivot = new THREE.Group();
-        boomPivot.position.set(1, 3, 0); cabinGroup.add(boomPivot);
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
 
-        const boomBaseGeo = new THREE.BoxGeometry(15, 2, 2); boomBaseGeo.translate(7.5, 0, 0); 
-        const boomBaseMesh = new THREE.Mesh(boomBaseGeo, matYellow); boomBaseMesh.castShadow = true; boomPivot.add(boomBaseMesh);
+                // Conectando los nombres exactos de tu JSON
+                if (node.name === 'Chassis') chassisNode = node;
+                if (node.name === 'Chassis_articulation_bras_telescopique_LTM_1136') cabinNode = node;
+                if (node.name === '1er_Bras_LTM_1110') boomNode = node;
 
-        const boomExtGeo = new THREE.BoxGeometry(1, 1.5, 1.5); boomExtGeo.translate(0.5, 0, 0);
-        const boomExtMesh = new THREE.Mesh(boomExtGeo, new THREE.MeshStandardMaterial({color: 0xd69e2e})); boomExtMesh.castShadow = true; boomPivot.add(boomExtMesh);
 
-        const cableGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,-10,0)]);
-        const cableLine = new THREE.Line(cableGeo, matCable); scene.add(cableLine); 
 
-        const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), matRed);
+                // --- CORPS (Base del cilindro) ---
+                if (node.name === 'Corps_verin_bras_telescopique_LTM_1110') {
+                    const wrapper = new THREE.Object3D();
+                    node.parent.add(wrapper);
+                    wrapper.add(node);
+
+                    // POSICIÓN: El wrapper se queda donde estaba el cilindro
+                    wrapper.position.copy(node.position);
+                    node.position.set(0, 0, 0);
+
+
+                    // POSE INICIAL: Aquí pones tus 45 grados. 
+                    // Esto es local, no se verá afectado por el movimiento del brazo.
+                    node.rotation.set(THREE.MathUtils.degToRad(3.5), THREE.MathUtils.degToRad(90), 0);
+                    const axesHelperWrapper = new THREE.AxesHelper(5); // Pequeño
+                    wrapper.add(axesHelperWrapper);
+
+                    cylBase = wrapper; // Animaremos el wrapper
+
+                }
+
+                // --- TIGE (Stem del cilindro) ---
+                if (node.name === 'Tige_verin_bras_telescopique_LTM_1110') {
+                    const wrapper = new THREE.Object3D();
+                    node.parent.add(wrapper);
+                    wrapper.add(node);
+
+                    // POSICIÓN: El wrapper se queda donde estaba el cilindro
+                    wrapper.position.copy(node.position);
+                    node.position.set(0, 0, 0);
+
+                    // POSE INICIAL: Aquí pones tus 45 grados. 
+                    // Esto es local, no se verá afectado por el movimiento del brazo.
+                    node.rotation.set(THREE.MathUtils.degToRad(-3.5), -THREE.MathUtils.degToRad(90), 0);
+
+                    const axesHelperWrapper = new THREE.AxesHelper(5); // Pequeño
+                    wrapper.add(axesHelperWrapper);
+
+                    cylStem = wrapper; // Animaremos el wrapper
+
+                }
+
+
+
+                // Capturar solo los nodos principales de cada brazo telescópico para evitar doble traslación de sub-mallas
+                const exactArmNames = [
+                    '2eme_Bras_LTM_1110', '3eme_Bras_LTM_1110', '4eme_Bras_LTM_1110',
+                    '5eme_Bras_LTM_1110', '6eme_Bras_LTM_1110', 'Fleche_Bras_LTM_1110'
+                ];
+
+                if (exactArmNames.includes(node.name)) {
+                    node.userData.initialPos = node.position.clone();
+                    rigArms.push(node);
+
+                    if (node.name === 'Fleche_Bras_LTM_1110') {
+                        flecheNode = node;
+                        // Usamos un ancla real en la jerarquía 3D para que sea matemáticamente imposible que se despegue.
+                        const anchor = new THREE.Object3D();
+                        anchor.position.set(-10.75, 0, 0);
+                        node.add(anchor);
+                        flecheNode.userData.tipAnchor = anchor;
+                    }
+                }
+
+                if (node.name.startsWith('Roue_LTM')) {
+                    // Ya no creamos Object3D() nuevo.
+                    // Guardamos el nodo directamente porque su pivote ya es su centro.
+                    wheels.push(node);
+
+                    // Opcional: solo para confirmar que el punto está bien
+                    const helper = new THREE.AxesHelper(2);
+                    node.add(helper);
+                }
+
+                if (node.name.includes('Crochet')) node.visible = false;
+            });
+
+
+            // Ordenamos los brazos para que el 2 salga antes que el 3, etc.
+            rigArms.sort((a, b) => a.name.localeCompare(b.name));
+
+            craneGroup.position.y = 1;
+            window.craneDebug = { boomNode, cabinNode, rigArms };
+            craneLoaded = true;
+        });
+
+        const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
+        const matCable = new THREE.LineBasicMaterial({ color: 0xc9d1d9, linewidth: 2 });
+        const cableGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -10, 0)]);
+        const cableLine = new THREE.Line(cableGeo, matCable);
+        cableLine.frustumCulled = false; // Evita que desaparezca cuando la cámara no mira su origen
+        scene.add(cableLine);
+        const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), matRed);
         loadMesh.castShadow = true; scene.add(loadMesh);
 
         // --- 6. BUCLE FÍSICO Y CONTROLES ---
         const keys = {};
-        window.addEventListener('keydown', (e) => { keys[e.key] = true; keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            keys[e.key.toLowerCase()] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.key.toLowerCase()] = false; });
 
         function checkCraneCollision(newX, newZ) {
             const craneHalfW = 6; // baseMesh es 12x2x8
             const craneHalfD = 4;
-            for(let obs of obstacles) {
-                if(newX + craneHalfW > obs.minX && newX - craneHalfW < obs.maxX &&
-                   newZ + craneHalfD > obs.minZ && newZ - craneHalfD < obs.maxZ) {
+            for (let obs of obstacles) {
+                if (newX + craneHalfW > obs.minX && newX - craneHalfW < obs.maxX &&
+                    newZ + craneHalfD > obs.minZ && newZ - craneHalfD < obs.maxZ) {
                     return true;
                 }
             }
@@ -377,7 +648,9 @@
         let loadYPos = 10;
         let lastTime = performance.now();
         let frameCount = 0;
-        let loadDirection = -1; 
+        let loadDirection = -1;
+
+
 
         function animate() {
             requestAnimationFrame(animate);
@@ -385,27 +658,27 @@
             const timeNow = performance.now();
             const dt = (timeNow - lastTime) / 1000;
             lastTime = timeNow;
-            
+
             frameCount++;
-            if(frameCount % 10 === 0) document.getElementById('fps').innerText = `FPS: ${Math.round(1/dt)}`;
+            if (frameCount % 10 === 0) document.getElementById('fps').innerText = `FPS: ${Math.round(1 / dt)}`;
 
             let elRot = document.getElementById('rot');
             let elExt = document.getElementById('ext');
             let elAng = document.getElementById('ang');
-            
-            if(keys['q']) elRot.value = parseFloat(elRot.value) - 45 * dt;
-            if(keys['e']) elRot.value = parseFloat(elRot.value) + 45 * dt;
-            if(keys['r']) elExt.value = parseFloat(elExt.value) + 15 * dt;
-            if(keys['f']) elExt.value = parseFloat(elExt.value) - 15 * dt;
-            if(keys['t']) elAng.value = parseFloat(elAng.value) + 20 * dt;
-            if(keys['g']) elAng.value = parseFloat(elAng.value) - 20 * dt;
+
+            if (keys['q']) elRot.value = parseFloat(elRot.value) - 45 * dt;
+            if (keys['a']) elRot.value = parseFloat(elRot.value) + 45 * dt;
+            if (keys['w']) elExt.value = parseFloat(elExt.value) + 15 * dt;
+            if (keys['s']) elExt.value = parseFloat(elExt.value) - 15 * dt;
+            if (keys['e']) elAng.value = parseFloat(elAng.value) + 20 * dt;
+            if (keys['d']) elAng.value = parseFloat(elAng.value) - 20 * dt;
 
             const massTon = parseFloat(document.getElementById('m').value);
             const speed = parseFloat(document.getElementById('v').value);
             const rotDeg = parseFloat(elRot.value);
             const ext = parseFloat(elExt.value);
             const angDeg = parseFloat(elAng.value);
-            
+
             const rotRad = rotDeg * (Math.PI / 180);
             const angRad = angDeg * (Math.PI / 180);
 
@@ -415,9 +688,9 @@
             document.getElementById('valExt').innerText = ext.toFixed(1);
             document.getElementById('valAng').innerText = angDeg.toFixed(1);
 
-            const radius = ext * Math.cos(angRad); 
-            const moment = massTon * radius; 
-            const power_kW = (massTon * 1000 * G * speed) / 1000 / 0.75; 
+            const radius = ext * Math.cos(angRad);
+            const moment = massTon * radius;
+            const power_kW = (massTon * 1000 * G * speed) / 1000 / 0.75;
             const power_HP = power_kW * 1.34102;
             const isOverload = moment > MAX_MOMENT;
 
@@ -428,7 +701,7 @@
 
             document.getElementById('outRadius').innerText = radius.toFixed(1) + ' m';
             document.getElementById('outLoad').innerText = massTon.toFixed(1) + ' T';
-            
+
             const momentEl = document.getElementById('outMoment');
             const mainStatus = document.getElementById('mainStatus');
             momentEl.innerText = moment.toFixed(1);
@@ -437,13 +710,13 @@
                 momentEl.className = 'big-data warning-text';
                 mainStatus.innerText = "PELIGRO: VUELCO ESTRUCTURAL";
                 mainStatus.style.background = "#f85149";
-                loadMesh.material.color.setHex(0xf85149); 
+                loadMesh.material.color.setHex(0xf85149);
             } else {
                 momentEl.className = 'big-data';
                 momentEl.style.color = moment > MAX_MOMENT * 0.8 ? '#d29922' : '#f6e05e';
                 mainStatus.innerText = moment > MAX_MOMENT * 0.8 ? "ADVERTENCIA: LÍMITE LMI" : "SISTEMA NOMINAL";
                 mainStatus.style.background = moment > MAX_MOMENT * 0.8 ? "#d29922" : "#2ea043";
-                loadMesh.material.color.setHex(0xe11d48); 
+                loadMesh.material.color.setHex(0xe11d48);
             }
 
             // LMI
@@ -454,31 +727,31 @@
             ctxLoad.lineTo(wL, hL); ctxLoad.fillStyle = 'rgba(63, 185, 80, 0.15)'; ctxLoad.fill();
             ctxLoad.strokeStyle = '#3fb950'; ctxLoad.lineWidth = 2; ctxLoad.stroke();
 
-            ctxLoad.beginPath(); ctxLoad.arc((radius / 70) * wL, hL - ((massTon / 60) * hL), 6, 0, Math.PI*2);
+            ctxLoad.beginPath(); ctxLoad.arc((radius / 70) * wL, hL - ((massTon / 60) * hL), 6, 0, Math.PI * 2);
             ctxLoad.fillStyle = isOverload ? '#f85149' : '#58a6ff'; ctxLoad.fill(); ctxLoad.strokeStyle = '#fff'; ctxLoad.stroke();
 
             // NAVEGACIÓN DE LA GRÚA (ESTILO VEHÍCULO)
             const moveSpeed = 25 * dt;
             const rotSpeed = 1.5 * dt;
 
-            if(keys.ArrowLeft || keys.a) craneGroup.rotation.y += rotSpeed;
-            if(keys.ArrowRight || keys.d) craneGroup.rotation.y -= rotSpeed;
+            if (keys.ArrowLeft) craneGroup.rotation.y += rotSpeed;
+            if (keys.ArrowRight) craneGroup.rotation.y -= rotSpeed;
 
             let moveDir = 0;
-            if(keys.ArrowUp || keys.w) moveDir = -moveSpeed;
-            if(keys.ArrowDown || keys.s) moveDir = moveSpeed;
+            if (keys.ArrowUp) moveDir = moveSpeed;
+            if (keys.ArrowDown) moveDir = -moveSpeed;
 
-            if(moveDir !== 0) {
-                let moveX = Math.sin(craneGroup.rotation.y) * moveDir;
-                let moveZ = Math.cos(craneGroup.rotation.y) * moveDir;
-                
+            if (moveDir !== 0) {
+                let moveX = Math.cos(craneGroup.rotation.y) * moveDir;
+                let moveZ = -Math.sin(craneGroup.rotation.y) * moveDir;
+
                 let oldX = craneGroup.position.x;
                 let oldZ = craneGroup.position.z;
                 let nextX = oldX + moveX;
                 let nextZ = oldZ + moveZ;
-                
-                if(!checkCraneCollision(nextX, oldZ)) craneGroup.position.x = nextX;
-                if(!checkCraneCollision(craneGroup.position.x, nextZ)) craneGroup.position.z = nextZ;
+
+                if (!checkCraneCollision(nextX, oldZ)) craneGroup.position.x = nextX;
+                if (!checkCraneCollision(craneGroup.position.x, nextZ)) craneGroup.position.z = nextZ;
 
                 let dX = craneGroup.position.x - oldX;
                 let dZ = craneGroup.position.z - oldZ;
@@ -489,17 +762,78 @@
             }
 
             // CINEMÁTICA Y FÍSICA
-            cabinGroup.rotation.y = rotRad;
-            boomPivot.rotation.z = angRad;
+            if (craneLoaded) {
 
-            const extLength = Math.max(0.1, ext - 15);
-            boomExtMesh.scale.x = extLength;
-            boomExtMesh.position.x = 15; 
+                // 1. ROTAR CABINA
+                // Si 'y' la hacía rotar mal, casi seguro es la 'z' (o la 'x' en el peor caso).
+                if (cabinNode) cabinNode.rotation.z = rotRad;
 
-            const tipLocal = new THREE.Vector3(15 + extLength, 0, 0);
-            const tipWorld = tipLocal.clone().applyMatrix4(boomPivot.matrixWorld);
+                // 2. ROTAR PLUMA
+                // Si al subir la pluma se mueve de lado, cambia esto a 'x' o 'y'
+                if (boomNode) boomNode.rotation.y = -angRad;
 
-            const size = 1.5 + (massTon/50)*2.5; 
+                // 4. ANIMAR CILINDRO HIDRÁULICO
+                // El eje nativo de ambas piezas es -X (dot(X_mundo, dir) ≈ -0.97 → X apunta contra dir)
+                if (cylBase && cylStem && boomNode && cabinNode) {
+                    // 1. Obtener posiciones mundiales
+                    const posBase = new THREE.Vector3();
+                    const posStem = new THREE.Vector3();
+                    cylBase.getWorldPosition(posBase);
+                    cylStem.getWorldPosition(posStem);
+
+                    // 2. Apuntar el wrapper
+                    // El wrapper (padre) NO tiene rotación propia (está en 0,0,0). 
+                    // Solo usamos lookAt para orientar el wrapper hacia el Stem.
+                    // El "up" vector (0,1,0) evita que el cilindro gire sobre sí mismo.
+                    cylBase.lookAt(posStem);
+                    cylStem.lookAt(posBase);
+                }
+
+                if (wheels.length > 0 && moveDir !== 0) {
+                    const wheelSpeed = 0.5;
+
+                    wheels.forEach((wheel) => {
+                        // Rotamos el eje que atraviesa la rueda. 
+                        // Si Blender y Three se entienden bien, suele ser el eje X o Z.
+                        // Prueba uno de estos tres:
+                        //wheel.rotation.x += moveDir * wheelSpeed;
+                        // wheel.rotation.y += moveDir * wheelSpeed;
+                        wheel.rotation.z += moveDir * wheelSpeed;
+                    });
+                }
+            }
+
+
+            // --- NUEVO CÁLCULO DE LA PUNTA USANDO EL NODO REAL ---
+            // 1. Extender brazos telescópicos
+            const extOffset = Math.max(0, ext - 10) * 0.1;
+            rigArms.forEach((arm) => {
+                if (arm.userData.initialPos) {
+                    arm.position.x = arm.userData.initialPos.x - extOffset;
+                }
+            });
+
+            // 2. Actualizar matrices y calcular punta en espacio mundo
+            craneGroup.updateMatrixWorld(true);
+
+
+            const tipWorld = new THREE.Vector3();
+            if (flecheNode && flecheNode.userData.tipAnchor) {
+                flecheNode.userData.tipAnchor.getWorldPosition(tipWorld);
+            } else {
+                tipWorld.copy(craneGroup.position);
+            }
+
+            // 3. Actualizar cable
+            if (cableLine) {
+                const pos = cableLine.geometry.attributes.position.array;
+                pos[0] = tipWorld.x; pos[1] = tipWorld.y; pos[2] = tipWorld.z;
+                pos[3] = tipWorld.x; pos[4] = loadYPos; pos[5] = tipWorld.z;
+                cableLine.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // 4. Actualizar carga
+            const size = 1.5 + (massTon / 50) * 2.5;
             loadMesh.scale.set(size, size, size);
 
             // === FÍSICA DE COLISIONES CON LA CIUDAD ===
@@ -507,23 +841,17 @@
             const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
             const minimumDropHeight = groundH + size; // Altura del edificio + mitad de la caja
 
-            if(speed > 0) {
-                loadYPos += speed * dt * 8 * loadDirection; 
-                
-                // Limite Inferior Dinámico (Choca con el asfalto o con el techo del edificio)
-                if(loadYPos <= minimumDropHeight) {
-                    loadYPos = minimumDropHeight;
-                    loadDirection = 1; // Sube
-                }
-                
-                if(loadYPos >= tipWorld.y - 2) {
-                    loadYPos = tipWorld.y - 2; 
-                    loadDirection = -1; // Baja
-                }
-            } else {
-                if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
-                if (loadYPos > tipWorld.y - 2) loadYPos = tipWorld.y - 2;
+            // Control manual del cabrestante (teclas Y / X)
+            if (keys['z']) {
+                loadYPos += speed * dt * 8; // Sube
             }
+            if (keys['x']) {
+                loadYPos -= speed * dt * 8; // Baja
+            }
+
+            // Limites dinámicos obligatorios
+            if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
+            if (loadYPos > tipWorld.y - 2) loadYPos = tipWorld.y - 2;
 
             const cablePositions = cableLine.geometry.attributes.position.array;
             cablePositions[0] = tipWorld.x; cablePositions[1] = tipWorld.y; cablePositions[2] = tipWorld.z;
@@ -536,7 +864,9 @@
             renderer.render(scene, camera);
         }
 
+
         animate();
     </script>
 </body>
+
 </html>
