@@ -6,21 +6,28 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 
 ## 🏗️ Características Principales
 
-* **Modelo 3D y Cinemática Realista:**
+* **Física y Cinemática Vehicular Realista (Modelo Ackermann + Inercia):**
+  * Conducción tipo camión real de gran tonelaje: el vehículo **no gira en parado sobre su propio eje**.
+  * Aceleración progresiva, desaceleración por inercia/rozamiento y frenado activo.
+  * Marchas automáticas: Avance (**D**), Punto Muerto (**N**) y Marcha Atrás (**R**).
+  * Dirección con retorno progresivo del volante y radio de curvatura dinámico según la batalla (*wheelbase*) de la grúa.
+  * Rodadura física sincronizada en los 5 ejes (10 ruedas).
+* **Cinemática de Grúa y Telescopaje:**
   * Carga optimizada del modelo glTF (`LTM 1110 LIEBHERR.gltf` + `.bin`).
-  * Cinemática de pluma telescópica multietapa (despliegue coordinado de tramos 2 a 6 y tramo flecha con punto de anclaje de punta).
-  * Cilindro hidráulico interactivo con orientación dinámica (*lookAt*) entre cuerpo y vástago.
-  * Rodadura de ejes/ruedas según el avance del vehículo.
-* **Sistema de Conducción y Colisiones:**
-  * Control del camión en modo oruga/vehículo con detección de colisiones de chasis frente a edificios y contenedores.
+  * Despliegue secuencial de tramos telescópicos (1º a 6º tramo y flecha).
+  * Cilindro hidráulico interactivo con orientación dinámica (*lookAt*) entre camisa y vástago.
+* **Aparejo de Gancho 3D y Proyección Holográfica:**
+  * **Bloque de polea y gancho 3D (Hook Block):** Bloque de polea Liebherr con detalles amarillos/negros, gancho de acero curvado y 4 eslingas tensoras que sujetan la carga.
+  * **Retícula holográfica de suelo (Ground Target):** Proyección visual circular en el suelo o techo del edificio bajo la pluma, con efecto de pulso y cambio de color a amarillo de advertencia al descender la carga.
+* **Optimización Extrema de Rendimiento:**
+  * Ciudad procedural renderizada mediante **`InstancedMesh`** y búfer unificado de aristas: reducción de más de 140 llamadas de dibujado (*draw calls*) a **solo 2**, manteniendo 60 FPS estables.
+  * Iluminación PBR calibrada con sombras suaves libres de artefactos (`shadow.normalBias`).
 * **Telemetría y Sistema LMI (Load Moment Indicator):**
   * Cálculo en tiempo real del Momento de Vuelco:
     $$M = \text{Masa (t)} \times \text{Radio (m)}$$
-  * Cálculo de potencia motriz estimada en HP en base a la velocidad de izado.
-  * Gráfico 2D dinámico (Canvas) que traza la curva de capacidad nominal y la posición de trabajo actual.
-  * Alertas automáticas de seguridad: *Sistema Nominal*, *Advertencia Límite LMI* y *Peligro de Vuelco Estructural*.
-* **Simulación de Cable y Cabrestante:**
-  * Elevación y descenso manual del gancho/carga con límites dinámicos respecto a la cota del terreno o techo de edificios.
+  * Cálculo de potencia motriz estimada en HP.
+  * Gráfico 2D dinámico (Canvas) con la curva de capacidad nominal y punto de trabajo actual.
+  * HUD vehicular superpuesto con velocímetro en tiempo real (**KM/H**), marcha actual (**D/N/R**) y ángulo de dirección.
 
 ---
 
@@ -29,10 +36,10 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 ### 🚚 Conducción del Camión
 | Tecla | Acción |
 | :--- | :--- |
-| `↑` (Flecha Arriba) | Avanzar vehículo |
-| `↓` (Flecha Abajo) | Retroceder vehículo |
-| `←` (Flecha Izquierda) | Girar dirección a la izquierda |
-| `→` (Flecha Derecha) | Girar dirección a la derecha |
+| `↑` (Flecha Arriba) | Acelerar hacia adelante / soltar para inercia |
+| `↓` (Flecha Abajo) | Frenar / Marcha atrás (al estar detenido) |
+| `←` (Flecha Izquierda) | Girar volante a la izquierda (gira solo en movimiento) |
+| `→` (Flecha Derecha) | Girar volante a la derecha (gira solo en movimiento) |
 
 ### 🏗️ Operación de la Grúa
 | Tecla / Control | Acción |
@@ -43,30 +50,21 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 | `Z` / `X` | Subir / Bajar cable del cabrestante |
 
 ### 🎛️ Panel de Mandos Lateral (Sliders UI)
-* **Masa Carga (t):** Ajusta el peso del bloque suspendido (0.5 t – 60 t).
-* **Velocidad Izado (m/s):** Modifica la rapidez del cabrestante e influye en la potencia requerida (HP).
+* **Masa Carga (t):** Ajusta el peso del bloque suspendido (0.5 t – 50 t).
+* **Velocidad Cabrestante (m/s):** Modifica la rapidez del cable e influye en la potencia requerida (HP).
 * **Rotación, Extensión y Ángulo:** Sliders sincronizados bidireccionalmente con los controles del teclado.
 
 ### 🎥 Cámara 3D (OrbitControls)
-* **Clic Izquierdo + Arrastrar:** Rotar vista orbital alrededor del objetivo.
+* **Clic Izquierdo + Arrastrar:** Rotar vista orbital alrededor de la grúa.
 * **Clic Derecho + Arrastrar:** Desplazar la cámara (*pan*).
 * **Rueda del Ratón:** Zoom in / Zoom out.
 
 ---
 
-## 🚀 Cómo Ejecutar en Local
+## 🚀 Cómo Ejecutar en Local (1 Clic)
 
-Debido a que el navegador restringe la carga de modelos 3D locales (`.gltf` / `.bin`) vía el protocolo `file://` por políticas de seguridad (CORS), se recomienda servir el proyecto mediante un servidor web local sencillo:
-
-### Opción 1: Con Python (Recomendado)
-Abre una terminal en la raíz del proyecto y ejecuta:
-```bash
-python -m http.server 8000
-```
-Luego abre tu navegador en: [http://localhost:8000](http://localhost:8000)
-
-### Opción 2: VS Code / Live Server
-Si utilizas Visual Studio Code, haz clic derecho sobre `index.html` y selecciona **"Open with Live Server"**.
+1. Haz **doble clic en `start.bat`**.
+2. Tu navegador predeterminado se abrirá automáticamente en [http://localhost:8000/](http://localhost:8000/).
 
 ---
 
@@ -74,12 +72,13 @@ Si utilizas Visual Studio Code, haz clic derecho sobre `index.html` y selecciona
 
 ```text
 Crane_Simulator/
-├── Assets3D/                       # Modelo 3D glTF optimizado
+├── Assets3D/                       # Modelo 3D glTF optimizado (rastreado en Git)
 │   ├── LTM 1110 LIEBHERR.gltf      # Estructura de nodos, materiales y jerarquía
 │   └── LTM 1110 LIEBHERR.bin       # Datos binarios de mallas geométricas
 ├── CAD/                            # Archivos fuente originales de diseño (ignorados en git)
 ├── .gitignore                      # Reglas de exclusión de Git
 ├── GruaTEst.html                   # Visor de prueba para inspección de piezas glTF
 ├── index.html                      # Aplicación principal del simulador
-└── README.md                       # Documentación del proyecto
+├── README.md                       # Documentación del proyecto
+└── start.bat                       # Lanzador en 1 clic para Windows
 ```

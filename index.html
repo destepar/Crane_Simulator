@@ -271,9 +271,10 @@
         </div>
 
         <div class="camera-view">
-            <div class="cam-overlay">CAM_01 // MOTOR DE FÍSICA: MATRIZ AABB ONLINE<br><span id="fps">FPS: 60</span>
+            <div class="cam-overlay">CAM_01 // LIEBHERR LTM 1110 // TELEMETRÍA ONLINE<br>
+                <span id="fps">FPS: 60</span> | VEL: <span id="hudSpeed" style="color:#58a6ff;font-weight:bold;">0 KM/H</span> | MARCHA: <span id="hudGear" style="color:#3fb950;font-weight:bold;">N</span> | VOLANTE: <span id="hudSteer">0°</span>
             </div>
-            <div class="help-overlay">Ratón: Clic Izq para Orbitar | Rueda para Zoom | Clic Der para Desplazar</div>
+            <div class="help-overlay">Flechas: Conducir (Acelerar / Freno / Marcha Atrás / Dirección) | Q/A: Giro Cabina | W/S: Extender Pluma | E/D: Ángulo | Z/X: Cabrestante</div>
             <div id="canvas3DContainer"></div>
         </div>
 
@@ -377,7 +378,8 @@
         dirLight.shadow.mapSize.height = 2048;
         dirLight.shadow.camera.near = 10;
         dirLight.shadow.camera.far = 600;
-        // Ampliamos el área de sombras para que cubra toda la ciudad
+        dirLight.shadow.bias = -0.0004;
+        dirLight.shadow.normalBias = 0.04;
         dirLight.shadow.camera.left = -200;
         dirLight.shadow.camera.right = 200;
         dirLight.shadow.camera.top = 200;
@@ -394,7 +396,7 @@
         // Opcional: Aumentamos un poco la intensidad de la luz del cielo (hemiLight)
         hemiLight.intensity = 2.0;
 
-        // --- 4. GENERACIÓN PROCEDURAL Y MATRIZ DE COLISIONES ---
+        // --- 4. GENERACIÓN PROCEDURAL Y MATRIZ DE COLISIONES OPTIMIZADA ---
         const cityGroup = new THREE.Group();
         scene.add(cityGroup);
 
@@ -402,50 +404,49 @@
         const obstacles = [];
 
         const planeGeo = new THREE.PlaneGeometry(800, 800);
-        const planeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, depthWrite: false });
+        const planeMat = new THREE.MeshStandardMaterial({ color: 0x080b10, depthWrite: false });
         const plane = new THREE.Mesh(planeGeo, planeMat);
         plane.rotation.x = -Math.PI / 2;
         plane.receiveShadow = true;
         scene.add(plane);
 
-        const gridHelper = new THREE.GridHelper(800, 200, 0x1f6feb, 0x0d1117);
+        const gridHelper = new THREE.GridHelper(800, 200, 0x00f3ff, 0x0f192a);
         gridHelper.position.y = 0.1;
         gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.4;
+        gridHelper.material.opacity = 0.35;
         scene.add(gridHelper);
 
-        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.15, depthWrite: false });
-        const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.3 });
+        // Construir datos de edificios
+        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.16, depthWrite: false });
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.35 });
 
         const citySize = 350;
         const safeZone = 80;
+        const buildingsData = [];
+
+        // Generador procedural reproducible
+        let seed = 42;
+        function seededRandom() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        }
 
         for (let x = -citySize; x <= citySize; x += 60) {
             for (let z = -citySize; z <= citySize; z += 60) {
                 if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
-                if (Math.random() > 0.6) continue; // 40% de probabilidad de no generar edificio
+                if (seededRandom() > 0.6) continue;
 
-                let offsetX = (Math.random() - 0.5) * 10;
-                let offsetZ = (Math.random() - 0.5) * 15;
+                let offsetX = (seededRandom() - 0.5) * 10;
+                let offsetZ = (seededRandom() - 0.5) * 15;
 
-                let height = 30 + Math.random() * 90;
-                let width = 15 + Math.random() * 15;
-                let depth = 15 + Math.random() * 15;
+                let height = 30 + seededRandom() * 90;
+                let width = 15 + seededRandom() * 15;
+                let depth = 15 + seededRandom() * 15;
 
                 let posX = x + offsetX;
                 let posZ = z + offsetZ;
 
-                let geo = new THREE.BoxGeometry(width, height, depth);
-                geo.translate(0, height / 2, 0);
-
-                let bldg = new THREE.Mesh(geo, bldgMat);
-                bldg.position.set(posX, 0, posZ);
-                cityGroup.add(bldg);
-
-                let edges = new THREE.EdgesGeometry(geo);
-                let lines = new THREE.LineSegments(edges, edgeMat);
-                lines.position.copy(bldg.position);
-                cityGroup.add(lines);
+                buildingsData.push({ posX, posZ, width, height, depth });
 
                 // GUARDAR OBSTÁCULO PARA COLISIÓN
                 obstacles.push({
@@ -457,6 +458,44 @@
                 });
             }
         }
+
+        // OPTIMIZACIÓN: InstancedMesh (1 Draw Call para todos los edificios)
+        const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const instancedBldg = new THREE.InstancedMesh(unitBoxGeo, bldgMat, buildingsData.length);
+        const dummyMatrix = new THREE.Matrix4();
+        const dummyPos = new THREE.Vector3();
+        const dummyScale = new THREE.Vector3();
+        const dummyQuat = new THREE.Quaternion();
+
+        // Buffer único para todas las aristas de los edificios (1 Draw Call para todas las líneas)
+        const edgePositions = [];
+
+        buildingsData.forEach((b, i) => {
+            dummyPos.set(b.posX, b.height / 2, b.posZ);
+            dummyScale.set(b.width, b.height, b.depth);
+            dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
+            instancedBldg.setMatrixAt(i, dummyMatrix);
+
+            // Generar 12 aristas para el bounding box
+            const x0 = b.posX - b.width / 2, x1 = b.posX + b.width / 2;
+            const y0 = 0, y1 = b.height;
+            const z0 = b.posZ - b.depth / 2, z1 = b.posZ + b.depth / 2;
+
+            // Base
+            edgePositions.push(x0,y0,z0, x1,y0,z0,  x1,y0,z0, x1,y0,z1,  x1,y0,z1, x0,y0,z1,  x0,y0,z1, x0,y0,z0);
+            // Techo
+            edgePositions.push(x0,y1,z0, x1,y1,z0,  x1,y1,z0, x1,y1,z1,  x1,y1,z1, x0,y1,z1,  x0,y1,z1, x0,y1,z0);
+            // Columnas verticales
+            edgePositions.push(x0,y0,z0, x0,y1,z0,  x1,y0,z0, x1,y1,z0,  x1,y0,z1, x1,y1,z1,  x0,y0,z1, x0,y1,z1);
+        });
+
+        instancedBldg.instanceMatrix.needsUpdate = true;
+        cityGroup.add(instancedBldg);
+
+        const mergedEdgesGeo = new THREE.BufferGeometry();
+        mergedEdgesGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3));
+        const mergedEdgeLines = new THREE.LineSegments(mergedEdgesGeo, edgeMat);
+        cityGroup.add(mergedEdgeLines);
 
         // Añadir Materiales (Contenedores)
         const crateGeo = new THREE.BoxGeometry(6, 6, 12);
@@ -613,16 +652,78 @@
             craneLoaded = true;
         });
 
-        const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.5 });
+        const matRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.4, metalness: 0.2 });
         const matCable = new THREE.LineBasicMaterial({ color: 0xc9d1d9, linewidth: 2 });
         const cableGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -10, 0)]);
         const cableLine = new THREE.Line(cableGeo, matCable);
-        cableLine.frustumCulled = false; // Evita que desaparezca cuando la cámara no mira su origen
+        cableLine.frustumCulled = false;
         scene.add(cableLine);
+
+        // --- APAREJO DE GANCHO INDUSTRIAL 3D (Hook Block) ---
+        const hookGroup = new THREE.Group();
+        scene.add(hookGroup);
+
+        const pulleyMat = new THREE.MeshStandardMaterial({ color: 0xf6c000, roughness: 0.35, metalness: 0.5 });
+        const steelMat = new THREE.MeshStandardMaterial({ color: 0x1f2328, roughness: 0.2, metalness: 0.85 });
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.8 });
+
+        const pulleyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.9), pulleyMat);
+        pulleyMesh.castShadow = true;
+        hookGroup.add(pulleyMesh);
+
+        const stripeMesh = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.35, 0.92), stripeMat);
+        hookGroup.add(stripeMesh);
+
+        const hookCurvMesh = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.16, 12, 24, Math.PI * 1.4), steelMat);
+        hookCurvMesh.position.set(0, -1.2, 0);
+        hookCurvMesh.rotation.z = Math.PI * 0.85;
+        hookCurvMesh.castShadow = true;
+        hookGroup.add(hookCurvMesh);
+
+        // Eslingas de conexión (4 cables tensores desde el gancho hacia los 4 vértices superiores de la carga)
+        const slingMat = new THREE.LineBasicMaterial({ color: 0xd0d7de, linewidth: 2 });
+        const slingGeo = new THREE.BufferGeometry();
+        const slingPositions = new Float32Array(4 * 2 * 3);
+        slingGeo.setAttribute('position', new THREE.BufferAttribute(slingPositions, 3));
+        const slingLines = new THREE.LineSegments(slingGeo, slingMat);
+        slingLines.frustumCulled = false;
+        scene.add(slingLines);
+
+        // Carga transportada
         const loadMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), matRed);
-        loadMesh.castShadow = true; scene.add(loadMesh);
+        loadMesh.castShadow = true;
+        scene.add(loadMesh);
+
+        // --- RETÍCULA HOLOGRÁFICA DE PROYECCIÓN EN SUELO (Ground Target) ---
+        const groundTargetGroup = new THREE.Group();
+        scene.add(groundTargetGroup);
+
+        const targetRingGeo = new THREE.RingGeometry(1.5, 2.2, 32);
+        const targetRingMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+        const groundTargetRing = new THREE.Mesh(targetRingGeo, targetRingMat);
+        groundTargetRing.rotation.x = -Math.PI / 2;
+        groundTargetGroup.add(groundTargetRing);
+
+        const targetDotGeo = new THREE.CircleGeometry(0.4, 16);
+        const targetDotMat = new THREE.MeshBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
+        const groundTargetDot = new THREE.Mesh(targetDotGeo, targetDotMat);
+        groundTargetDot.rotation.x = -Math.PI / 2;
+        groundTargetGroup.add(groundTargetDot);
 
         // --- 6. BUCLE FÍSICO Y CONTROLES ---
+        // Variables cinemáticas vehiculares avanzadas (Ackermann + Inercia)
+        let vehicleSpeed = 0;         // Velocidad longitudinal (m/s)
+        let steerAngle = 0;           // Ángulo de dirección de ruedas delanteras (rad)
+        const MAX_FORWARD_SPEED = 20; // Velocidad punta hacia adelante
+        const MAX_REVERSE_SPEED = 9;  // Velocidad punta marcha atrás
+        const ACCEL_RATE = 16;        // Aceleración lineal m/s^2
+        const BRAKE_RATE = 26;        // Potencia de frenado m/s^2
+        const COAST_RATE = 8;         // Resistencia natural / rozamiento
+        const MAX_STEER_RAD = 0.45;   // ~26 grados de giro máximo de dirección
+        const STEER_RATE = 1.7;       // Rapidez de rotación del volante
+        const STEER_RETURN_RATE = 2.4;// Retorno automático del volante al centro
+        const WHEELBASE = 15.0;       // Batalla efectiva entre ejes del camión Liebherr
+
         const keys = {};
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
@@ -730,36 +831,83 @@
             ctxLoad.beginPath(); ctxLoad.arc((radius / 70) * wL, hL - ((massTon / 60) * hL), 6, 0, Math.PI * 2);
             ctxLoad.fillStyle = isOverload ? '#f85149' : '#58a6ff'; ctxLoad.fill(); ctxLoad.strokeStyle = '#fff'; ctxLoad.stroke();
 
-            // NAVEGACIÓN DE LA GRÚA (ESTILO VEHÍCULO)
-            const moveSpeed = 25 * dt;
-            const rotSpeed = 1.5 * dt;
+            // --- NAVEGACIÓN VEHICULAR REALISTA (ACKERMANN + INERCIA) ---
+            // 1. Manejo del Volante / Dirección
+            if (keys.ArrowLeft) {
+                steerAngle = Math.min(MAX_STEER_RAD, steerAngle + STEER_RATE * dt);
+            } else if (keys.ArrowRight) {
+                steerAngle = Math.max(-MAX_STEER_RAD, steerAngle - STEER_RATE * dt);
+            } else {
+                // Retorno progresivo al centro
+                if (steerAngle > 0) steerAngle = Math.max(0, steerAngle - STEER_RETURN_RATE * dt);
+                else if (steerAngle < 0) steerAngle = Math.min(0, steerAngle + STEER_RETURN_RATE * dt);
+            }
 
-            if (keys.ArrowLeft) craneGroup.rotation.y += rotSpeed;
-            if (keys.ArrowRight) craneGroup.rotation.y -= rotSpeed;
+            // 2. Acelerador, Frenos e Inercia Longitudinal
+            if (keys.ArrowUp) {
+                if (vehicleSpeed >= 0) {
+                    vehicleSpeed = Math.min(MAX_FORWARD_SPEED, vehicleSpeed + ACCEL_RATE * dt);
+                } else {
+                    vehicleSpeed = Math.min(0, vehicleSpeed + BRAKE_RATE * dt);
+                }
+            } else if (keys.ArrowDown) {
+                if (vehicleSpeed > 0) {
+                    vehicleSpeed = Math.max(0, vehicleSpeed - BRAKE_RATE * dt);
+                } else {
+                    vehicleSpeed = Math.max(-MAX_REVERSE_SPEED, vehicleSpeed - ACCEL_RATE * 0.7 * dt);
+                }
+            } else {
+                // Rozamiento por inercia
+                if (vehicleSpeed > 0) vehicleSpeed = Math.max(0, vehicleSpeed - COAST_RATE * dt);
+                else if (vehicleSpeed < 0) vehicleSpeed = Math.min(0, vehicleSpeed + COAST_RATE * dt);
+            }
 
-            let moveDir = 0;
-            if (keys.ArrowUp) moveDir = moveSpeed;
-            if (keys.ArrowDown) moveDir = -moveSpeed;
+            // 3. Cinemática de giro: ¡EL VEHÍCULO SOLO GIRA SI ESTÁ EN MOVIMIENTO!
+            // (Evita rotar como trompo en parado)
+            if (Math.abs(vehicleSpeed) > 0.05) {
+                const turnRate = (vehicleSpeed / WHEELBASE) * Math.tan(steerAngle);
+                craneGroup.rotation.y += turnRate * dt;
+            }
 
-            if (moveDir !== 0) {
-                let moveX = Math.cos(craneGroup.rotation.y) * moveDir;
-                let moveZ = -Math.sin(craneGroup.rotation.y) * moveDir;
+            // 4. Desplazamiento y comprobación de colisiones
+            const moveDist = vehicleSpeed * dt;
+            if (Math.abs(moveDist) > 0.0001) {
+                const moveX = Math.cos(craneGroup.rotation.y) * moveDist;
+                const moveZ = -Math.sin(craneGroup.rotation.y) * moveDist;
 
-                let oldX = craneGroup.position.x;
-                let oldZ = craneGroup.position.z;
-                let nextX = oldX + moveX;
-                let nextZ = oldZ + moveZ;
+                const oldX = craneGroup.position.x;
+                const oldZ = craneGroup.position.z;
+                const nextX = oldX + moveX;
+                const nextZ = oldZ + moveZ;
 
-                if (!checkCraneCollision(nextX, oldZ)) craneGroup.position.x = nextX;
-                if (!checkCraneCollision(craneGroup.position.x, nextZ)) craneGroup.position.z = nextZ;
+                let collidedX = !checkCraneCollision(nextX, oldZ);
+                let collidedZ = !checkCraneCollision(craneGroup.position.x, nextZ);
 
-                let dX = craneGroup.position.x - oldX;
-                let dZ = craneGroup.position.z - oldZ;
+                if (collidedX) craneGroup.position.x = nextX;
+                if (collidedZ) craneGroup.position.z = nextZ;
+
+                // Si choca contra un muro frontalmente, detener la inercia
+                if (!collidedX && !collidedZ) {
+                    vehicleSpeed = 0;
+                }
+
+                const dX = craneGroup.position.x - oldX;
+                const dZ = craneGroup.position.z - oldZ;
 
                 camera.position.x += dX;
                 camera.position.z += dZ;
                 controls.target.set(craneGroup.position.x, 15, craneGroup.position.z);
             }
+
+            // 5. Actualizar telemetría de conducción en HUD
+            const speedKmh = Math.round(Math.abs(vehicleSpeed) * 3.6);
+            document.getElementById('hudSpeed').innerText = `${speedKmh} KM/H`;
+            const gear = vehicleSpeed > 0.2 ? 'D' : (vehicleSpeed < -0.2 ? 'R' : 'N');
+            const elGear = document.getElementById('hudGear');
+            elGear.innerText = gear;
+            elGear.style.color = gear === 'D' ? '#3fb950' : (gear === 'R' ? '#f85149' : '#d29922');
+            const steerDeg = Math.round(steerAngle * (180 / Math.PI));
+            document.getElementById('hudSteer').innerText = `${steerDeg > 0 ? '+' : ''}${steerDeg}°`;
 
             // CINEMÁTICA Y FÍSICA
             if (craneLoaded) {
@@ -789,16 +937,10 @@
                     cylStem.lookAt(posBase);
                 }
 
-                if (wheels.length > 0 && moveDir !== 0) {
-                    const wheelSpeed = 0.5;
-
+                if (wheels.length > 0 && Math.abs(moveDist) > 0.0001) {
+                    const wheelRotDelta = moveDist / 1.5;
                     wheels.forEach((wheel) => {
-                        // Rotamos el eje que atraviesa la rueda. 
-                        // Si Blender y Three se entienden bien, suele ser el eje X o Z.
-                        // Prueba uno de estos tres:
-                        //wheel.rotation.x += moveDir * wheelSpeed;
-                        // wheel.rotation.y += moveDir * wheelSpeed;
-                        wheel.rotation.z += moveDir * wheelSpeed;
+                        wheel.rotation.z += wheelRotDelta;
                     });
                 }
             }
@@ -824,14 +966,13 @@
                 tipWorld.copy(craneGroup.position);
             }
 
-            // 3. Actualizar carga
+            // 3. Actualizar carga y escala
             const size = 1.5 + (massTon / 50) * 2.5;
             loadMesh.scale.set(size, size, size);
 
             // === FÍSICA DE COLISIONES CON LA CIUDAD ===
-            // 1. Preguntamos qué tan alto es el suelo/edificio directamente debajo de la punta de la pluma
             const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
-            const minimumDropHeight = groundH + size; // Altura del edificio + mitad de la caja
+            const minimumDropHeight = groundH + size;
 
             // Control manual del cabrestante (teclas Z / X)
             if (keys['z']) {
@@ -841,19 +982,69 @@
                 loadYPos -= speed * dt * 8; // Baja
             }
 
-            // Límites dinámicos obligatorios
+            // Límites dinámicos obligatorios (gancho + carga bajo la punta)
+            const hookOffsetFromLoad = size * 0.5 + 2.2;
+            const maxAllowedLoadY = tipWorld.y - hookOffsetFromLoad - 1.0;
             if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
-            if (loadYPos > tipWorld.y - 2) loadYPos = tipWorld.y - 2;
+            if (loadYPos > maxAllowedLoadY) loadYPos = maxAllowedLoadY;
 
-            // 4. Actualizar cable y posición de carga
+            loadMesh.position.set(tipWorld.x, loadYPos, tipWorld.z);
+
+            // Posicionar el aparejo de polea/gancho directamente arriba de la carga
+            const hookYPos = loadYPos + hookOffsetFromLoad;
+            hookGroup.position.set(tipWorld.x, hookYPos, tipWorld.z);
+            hookGroup.rotation.y = craneGroup.rotation.y;
+
+            // 4. Actualizar cable principal (desde punta de pluma hasta polea superior)
             if (cableLine) {
                 const cablePositions = cableLine.geometry.attributes.position.array;
                 cablePositions[0] = tipWorld.x; cablePositions[1] = tipWorld.y; cablePositions[2] = tipWorld.z;
-                cablePositions[3] = tipWorld.x; cablePositions[4] = loadYPos; cablePositions[5] = tipWorld.z;
+                cablePositions[3] = tipWorld.x; cablePositions[4] = hookYPos + 0.7; cablePositions[5] = tipWorld.z;
                 cableLine.geometry.attributes.position.needsUpdate = true;
             }
 
-            loadMesh.position.set(tipWorld.x, loadYPos, tipWorld.z);
+            // 5. Actualizar eslingas (4 cables tensores desde gancho hasta esquinas de la carga)
+            if (slingLines) {
+                const hookTipY = hookYPos - 1.2;
+                const halfS = size * 0.5;
+                const topLoadY = loadYPos + halfS;
+                const sp = slingLines.geometry.attributes.position.array;
+
+                // Esquina 1 (+X, +Z)
+                sp[0] = tipWorld.x; sp[1] = hookTipY; sp[2] = tipWorld.z;
+                sp[3] = tipWorld.x + halfS; sp[4] = topLoadY; sp[5] = tipWorld.z + halfS;
+
+                // Esquina 2 (+X, -Z)
+                sp[6] = tipWorld.x; sp[7] = hookTipY; sp[8] = tipWorld.z;
+                sp[9] = tipWorld.x + halfS; sp[10] = topLoadY; sp[11] = tipWorld.z - halfS;
+
+                // Esquina 3 (-X, -Z)
+                sp[12] = tipWorld.x; sp[13] = hookTipY; sp[14] = tipWorld.z;
+                sp[15] = tipWorld.x - halfS; sp[16] = topLoadY; sp[17] = tipWorld.z - halfS;
+
+                // Esquina 4 (-X, +Z)
+                sp[18] = tipWorld.x; sp[19] = hookTipY; sp[20] = tipWorld.z;
+                sp[21] = tipWorld.x - halfS; sp[22] = topLoadY; sp[23] = tipWorld.z + halfS;
+
+                slingLines.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // 6. Actualizar retícula holográfica de proyección en suelo / techo
+            const distToGround = Math.max(0.05, loadYPos - minimumDropHeight);
+            groundTargetGroup.position.set(tipWorld.x, groundH + 0.12, tipWorld.z);
+
+            // Efecto de pulso y proximidad
+            const pulse = 0.5 + 0.5 * Math.sin(timeNow * 0.006);
+            const scaleTarget = Math.min(2.2, 0.9 + (distToGround / 25));
+            groundTargetGroup.scale.set(scaleTarget, 1, scaleTarget);
+
+            if (distToGround < 2.5) {
+                targetRingMat.color.setHex(0xf6e05e); // Amarillo advertencia
+                targetRingMat.opacity = 0.75 + 0.25 * pulse;
+            } else {
+                targetRingMat.color.setHex(0x00f3ff); // Cian normal
+                targetRingMat.opacity = Math.max(0.25, 0.65 - (distToGround / 60));
+            }
 
             controls.update();
             renderer.render(scene, camera);
