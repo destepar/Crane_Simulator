@@ -824,15 +824,7 @@
                 tipWorld.copy(craneGroup.position);
             }
 
-            // 3. Actualizar cable
-            if (cableLine) {
-                const pos = cableLine.geometry.attributes.position.array;
-                pos[0] = tipWorld.x; pos[1] = tipWorld.y; pos[2] = tipWorld.z;
-                pos[3] = tipWorld.x; pos[4] = loadYPos; pos[5] = tipWorld.z;
-                cableLine.geometry.attributes.position.needsUpdate = true;
-            }
-
-            // 4. Actualizar carga
+            // 3. Actualizar carga
             const size = 1.5 + (massTon / 50) * 2.5;
             loadMesh.scale.set(size, size, size);
 
@@ -841,7 +833,7 @@
             const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
             const minimumDropHeight = groundH + size; // Altura del edificio + mitad de la caja
 
-            // Control manual del cabrestante (teclas Y / X)
+            // Control manual del cabrestante (teclas Z / X)
             if (keys['z']) {
                 loadYPos += speed * dt * 8; // Sube
             }
@@ -849,14 +841,17 @@
                 loadYPos -= speed * dt * 8; // Baja
             }
 
-            // Limites dinámicos obligatorios
+            // Límites dinámicos obligatorios
             if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
             if (loadYPos > tipWorld.y - 2) loadYPos = tipWorld.y - 2;
 
-            const cablePositions = cableLine.geometry.attributes.position.array;
-            cablePositions[0] = tipWorld.x; cablePositions[1] = tipWorld.y; cablePositions[2] = tipWorld.z;
-            cablePositions[3] = tipWorld.x; cablePositions[4] = loadYPos; cablePositions[5] = tipWorld.z;
-            cableLine.geometry.attributes.position.needsUpdate = true;
+            // 4. Actualizar cable y posición de carga
+            if (cableLine) {
+                const cablePositions = cableLine.geometry.attributes.position.array;
+                cablePositions[0] = tipWorld.x; cablePositions[1] = tipWorld.y; cablePositions[2] = tipWorld.z;
+                cablePositions[3] = tipWorld.x; cablePositions[4] = loadYPos; cablePositions[5] = tipWorld.z;
+                cableLine.geometry.attributes.position.needsUpdate = true;
+            }
 
             loadMesh.position.set(tipWorld.x, loadYPos, tipWorld.z);
 
