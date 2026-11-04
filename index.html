@@ -239,6 +239,132 @@
             }
         }
     
+        /* Widget de Misión y Puntos de Entrega */
+        .mission-card {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(13, 17, 23, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid #30363d;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 10px 14px;
+            width: 250px;
+            z-index: 15;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .mission-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #21262d;
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+        }
+
+        .mission-tag {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            color: #58a6ff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .mission-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            color: #f6e05e;
+            font-weight: bold;
+        }
+
+        .mission-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.78rem;
+            color: #ffffff;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .mission-desc {
+            font-size: 0.68rem;
+            color: #8b949e;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .mission-metrics {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: #c9d1d9;
+            margin-bottom: 6px;
+        }
+
+        .mission-metrics strong {
+            color: #58a6ff;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .mission-prog-track {
+            width: 100%;
+            height: 5px;
+            background: #161b22;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mission-prog-fill {
+            width: 0%;
+            height: 100%;
+            background: #3fb950;
+            box-shadow: 0 0 8px rgba(63, 185, 80, 0.7);
+            transition: width 0.15s ease-out;
+        }
+
+        /* Banner de Éxito / Misión Cumplida */
+        .toast-success {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(46, 160, 67, 0.95);
+            color: #ffffff;
+            border: 1px solid #3fb950;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(63, 185, 80, 0.5);
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.05rem;
+            font-weight: bold;
+            z-index: 20;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
+
+        .toast-success.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Alerta de Impacto en Pantalla */
+        .impact-flash {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            box-shadow: inset 0 0 60px rgba(248, 81, 73, 0);
+            pointer-events: none;
+            z-index: 12;
+            transition: box-shadow 0.1s ease-out;
+        }
+
+        .impact-flash.hit {
+            box-shadow: inset 0 0 80px rgba(248, 81, 73, 0.65);
+        }
+
         /* Display Digital de Cabina Liebherr (LICCON Style - Rígido y Fijo) */
         .cockpit-panel {
             position: absolute;
@@ -442,11 +568,28 @@
 
         <div class="camera-view">
             <div class="cam-overlay">
-                <div>CAM_01 // LIEBHERR LTM 1110 // TELEMETRÍA ONLINE</div>
-                <div style="font-size: 0.72rem; color: #8b949e; margin-top: 2px;">
-                    <span id="fps">FPS: 60</span> | Flechas: Conducir | Q/A: Giro Cabina | W/S: Pluma | E/D: Ángulo | Z/X: Cabrestante
+                <div>CAM_01 // ONLINE <span id="fps" style="color: #3fb950; font-weight: bold; margin-left: 6px;">FPS: 60</span></div>
+            </div>
+
+            <!-- HUD DE MISIÓN Y PUNTOS -->
+            <div class="mission-card">
+                <div class="mission-top-row">
+                    <span class="mission-tag" id="missionTag">MISIÓN [1/3]</span>
+                    <span class="mission-score" id="missionScore">0 PTS</span>
+                </div>
+                <div class="mission-title" id="missionTitle">BAHÍA DE CARGA EN SUELO</div>
+                <div class="mission-desc" id="missionDesc">Posar bloque suavemente en la diana de suelo</div>
+                <div class="mission-metrics">
+                    <span>DIST: <strong id="missionDist">0.0 m</strong></span>
+                    <span>ALT: <strong id="missionAlt">0.0 m</strong></span>
+                </div>
+                <div class="mission-prog-track">
+                    <div class="mission-prog-fill" id="missionProgress"></div>
                 </div>
             </div>
+
+            <div class="toast-success" id="missionToast">¡ENTREGA EXITOSA! +100 PTS</div>
+            <div class="impact-flash" id="impactFlash"></div>
 
             <!-- DISPLAY DIGITAL DE CABINA LIEBHERR LICCON -->
             <div class="cockpit-panel">
@@ -563,10 +706,10 @@
         const container3D = document.getElementById('canvas3DContainer');
         const scene = new THREE.Scene();
 
-        // Atmósfera de obra industrial diurna (Cielo azul nórdico suave con bruma de horizonte)
-        const skyColor = new THREE.Color(0x1a2634);
+        // Atmósfera de Obra Diurna Natural y Radiante (Clear Daylight Studio)
+        const skyColor = new THREE.Color(0x9bc3eb);
         scene.background = skyColor;
-        scene.fog = new THREE.FogExp2(0x1a2634, 0.0028);
+        scene.fog = new THREE.Fog(0xbddaf5, 160, 850); // Bruma lejana y luminosa
 
         const camera = new THREE.PerspectiveCamera(48, container3D.clientWidth / container3D.clientHeight, 0.1, 2000);
         camera.position.set(-85, 55, 95);
@@ -577,7 +720,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.15;
+        renderer.toneMappingExposure = 1.05;
         container3D.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -603,10 +746,10 @@
         skyCanvas.width = 512; skyCanvas.height = 256;
         const sCtx = skyCanvas.getContext('2d');
         const sGrad = sCtx.createLinearGradient(0, 0, 0, 256);
-        sGrad.addColorStop(0, '#3a6b9c');    // Azul cielo en el cenit
-        sGrad.addColorStop(0.5, '#7fa3c4');  // Bruma suave en el horizonte
-        sGrad.addColorStop(0.52, '#2b3038'); // Rebote oscuro de asfalto en el suelo
-        sGrad.addColorStop(1, '#181b20');
+        sGrad.addColorStop(0, '#2472c8');    // Azul cielo puro y luminoso
+        sGrad.addColorStop(0.48, '#cde2f8'); // Luz difusa brillante de horizonte
+        sGrad.addColorStop(0.52, '#505662'); // Rebote de losa de hormigón
+        sGrad.addColorStop(1, '#2b3038');
         sCtx.fillStyle = sGrad;
         sCtx.fillRect(0, 0, 512, 256);
 
@@ -622,15 +765,15 @@
         const envTexture = pmremGen.fromScene(envScene).texture;
         scene.environment = envTexture;
 
-        // --- 3. ILUMINACIÓN CINEMATOGRÁFICA NATURAL ---
-        // Luz hemisférica: cielo azul diurno arriba, rebote de asfalto industrial abajo
-        const hemiLight = new THREE.HemisphereLight(0xbad7f5, 0x2d3440, 1.3);
-        hemiLight.position.set(0, 100, 0);
+        // --- 3. ILUMINACIÓN SOLAR DIURNA DE ALTA DEFINICIÓN ---
+        // Luz hemisférica diurna: cielo azul claro arriba y suelo claro neutro abajo
+        const hemiLight = new THREE.HemisphereLight(0xd4e9ff, 0x5a6372, 1.15);
+        hemiLight.position.set(0, 120, 0);
         scene.add(hemiLight);
 
-        // Sol principal: luz direccional dorada con sombras de alta definición (4K)
-        const dirLight = new THREE.DirectionalLight(0xfff5e6, 2.4);
-        dirLight.position.set(130, 220, 90);
+        // Sol principal: luz diurna neutra radiante (sombras 4K)
+        const dirLight = new THREE.DirectionalLight(0xfffef7, 2.3);
+        dirLight.position.set(135, 230, 95);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 4096;
         dirLight.shadow.mapSize.height = 4096;
@@ -644,9 +787,9 @@
         dirLight.shadow.normalBias = 0.035;
         scene.add(dirLight);
 
-        // Luz de relleno suave para el reverso del chasis
-        const fillLight = new THREE.DirectionalLight(0x7da4cc, 0.45);
-        fillLight.position.set(-80, 50, -60);
+        // Luz secundaria de relleno ambiental
+        const fillLight = new THREE.DirectionalLight(0xa5cbf5, 0.55);
+        fillLight.position.set(-90, 60, -70);
         scene.add(fillLight);
 
         // --- 4. EXPLANADA DE HORMIGÓN INDUSTRIAL Y MATRIZ DE COLISIONES ---
@@ -742,6 +885,8 @@
         const citySize = 350;
         const safeZone = 75;
         let seed = 42;
+        let rooftopTarget = { x: -80, y: 70, z: -80, width: 24, depth: 24 };
+        let maxTowerH = 0;
         function seededRandom() {
             seed = (seed * 9301 + 49297) % 233280;
             return seed / 233280;
@@ -773,6 +918,12 @@
                 const bEdges = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), bldgEdgeMat);
                 bEdges.position.copy(bldgMesh.position);
                 cityGroup.add(bEdges);
+
+                // Localizar el rascacielos principal para la Zona 3 (Misión Experta)
+                if (height > maxTowerH && Math.abs(posX) < 130 && Math.abs(posZ) < 130) {
+                    maxTowerH = height;
+                    rooftopTarget = { x: posX, y: height, z: posZ, width, depth };
+                }
 
                 obstacles.push({
                     minX: posX - width / 2,
@@ -874,6 +1025,84 @@
             }
             return maxH;
         }
+
+        // --- SISTEMA DE MISIONES Y ZONAS OBJETIVO DE DESCARGA ---
+        const missionTargets = [
+            {
+                id: 1,
+                name: 'ZONA A: BAHÍA DE SUELO',
+                desc: 'Posar suavemente el bloque en la plataforma del suelo',
+                x: 34, y: 0.1, z: 22,
+                radius: 3.5,
+                points: 100,
+                difficulty: 'FÁCIL',
+                color: 0x3fb950
+            },
+            {
+                id: 2,
+                name: 'ZONA B: STACK CONTENEDORES',
+                desc: 'Elevar y posar sobre el 2º nivel de contenedores apilados',
+                x: 41, y: 10.1, z: -12,
+                radius: 3.2,
+                points: 250,
+                difficulty: 'MEDIA',
+                color: 0x58a6ff
+            },
+            {
+                id: 3,
+                name: 'ZONA C: AZOTEA RASCACIELOS',
+                desc: 'Izado técnico extremo a gran altura en azotea',
+                x: rooftopTarget.x, y: rooftopTarget.y + 0.1, z: rooftopTarget.z,
+                radius: 3.5,
+                points: 500,
+                difficulty: 'EXPERTO',
+                color: 0xf6e05e
+            }
+        ];
+
+        let currentMissionIndex = 0;
+        let totalScore = 0;
+        let landingStabilityTime = 0;
+
+        // Construir balizas 3D visuales para cada zona objetivo
+        const targetVisualGroups = [];
+
+        missionTargets.forEach((t) => {
+            const tGroup = new THREE.Group();
+            tGroup.position.set(t.x, t.y, t.z);
+
+            // Anillo base con luz LED de balizamiento
+            const baseRing = new THREE.Mesh(
+                new THREE.RingGeometry(t.radius * 0.7, t.radius, 32),
+                new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.65, side: THREE.DoubleSide })
+            );
+            baseRing.rotation.x = -Math.PI / 2;
+            tGroup.add(baseRing);
+
+            // Diana interior pulsante
+            const innerDot = new THREE.Mesh(
+                new THREE.CircleGeometry(t.radius * 0.35, 16),
+                new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+            );
+            innerDot.rotation.x = -Math.PI / 2;
+            tGroup.add(innerDot);
+
+            // Haz volumétrico vertical translúcido (columna de luz localizadora)
+            const beamGeo = new THREE.CylinderGeometry(t.radius * 0.85, t.radius, 35, 16, 1, true);
+            const beamMat = new THREE.MeshBasicMaterial({
+                color: t.color,
+                transparent: true,
+                opacity: 0.12,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            const beam = new THREE.Mesh(beamGeo, beamMat);
+            beam.position.y = 17.5;
+            tGroup.add(beam);
+
+            scene.add(tGroup);
+            targetVisualGroups.push({ group: tGroup, ring: baseRing, dot: innerDot, beam, data: t });
+        });
 
         // --- 5. MODELO DE GRÚA ---
         const craneGroup = new THREE.Group(); // <-- ¡ESTA FALTABA!
@@ -1079,16 +1308,40 @@
         });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.key.toLowerCase()] = false; });
 
-        function checkCraneCollision(newX, newZ) {
-            const craneHalfW = 6; // baseMesh es 12x2x8
-            const craneHalfD = 4;
+        // Sistema de Detección de Colisiones OBB Multi-Esfera Rotado con el Chasis
+        function checkCraneOBBCollision(cx, cz, rotY) {
+            const forwardX = Math.cos(rotY);
+            const forwardZ = -Math.sin(rotY);
+            const sphereRadius = 2.4; // Radio de ancho de vía del camión
+
+            // 3 puntos de prueba a lo largo del chasis de 14 metros:
+            // 1. Morro/Ejes delanteros (+4.8m)
+            // 2. Centro/Cabina (0m)
+            // 3. Trasera/Contrapeso (-4.8m)
+            const testPoints = [
+                { x: cx + forwardX * 4.8, z: cz + forwardZ * 4.8, part: 'FRONT' },
+                { x: cx, z: cz, part: 'CENTER' },
+                { x: cx - forwardX * 4.8, z: cz - forwardZ * 4.8, part: 'REAR' }
+            ];
+
             for (let obs of obstacles) {
-                if (newX + craneHalfW > obs.minX && newX - craneHalfW < obs.maxX &&
-                    newZ + craneHalfD > obs.minZ && newZ - craneHalfD < obs.maxZ) {
-                    return true;
+                for (let pt of testPoints) {
+                    const nearX = Math.max(obs.minX, Math.min(pt.x, obs.maxX));
+                    const nearZ = Math.max(obs.minZ, Math.min(pt.z, obs.maxZ));
+                    const dx = pt.x - nearX;
+                    const dz = pt.z - nearZ;
+
+                    if ((dx * dx + dz * dz) < (sphereRadius * sphereRadius)) {
+                        return {
+                            collided: true,
+                            part: pt.part,
+                            normalX: dx,
+                            normalZ: dz
+                        };
+                    }
                 }
             }
-            return false;
+            return { collided: false };
         }
 
         let cableLength = 12; // Longitud física desenrollada del cable en metros
@@ -1225,7 +1478,7 @@
                 craneGroup.rotation.y += turnRate * dt;
             }
 
-            // 4. Desplazamiento y comprobación de colisiones
+            // 4. Desplazamiento con Colisiones OBB Rotadas y Rebote Elástico Parachoques
             const moveDist = vehicleSpeed * dt;
             if (Math.abs(moveDist) > 0.0001) {
                 const moveX = Math.cos(craneGroup.rotation.y) * moveDist;
@@ -1236,15 +1489,23 @@
                 const nextX = oldX + moveX;
                 const nextZ = oldZ + moveZ;
 
-                let collidedX = !checkCraneCollision(nextX, oldZ);
-                let collidedZ = !checkCraneCollision(craneGroup.position.x, nextZ);
+                // Comprobación de colisión con chasis orientado en 360°
+                const colTest = checkCraneOBBCollision(nextX, nextZ, craneGroup.rotation.y);
 
-                if (collidedX) craneGroup.position.x = nextX;
-                if (collidedZ) craneGroup.position.z = nextZ;
+                if (!colTest.collided) {
+                    craneGroup.position.x = nextX;
+                    craneGroup.position.z = nextZ;
+                } else {
+                    // ¡REBOTE ELÁSTICO PARACHOQUES Y DESENGANCHE SUAVE!
+                    // Absorbe el impacto y rebota en sentido contrario para no quedarse trabado
+                    vehicleSpeed = -vehicleSpeed * 0.35;
 
-                // Si choca contra un muro frontalmente, detener la inercia
-                if (!collidedX && !collidedZ) {
-                    vehicleSpeed = 0;
+                    // Alerta visual de impacto en cabina
+                    const flash = document.getElementById('impactFlash');
+                    if (flash) {
+                        flash.className = 'impact-flash hit';
+                        setTimeout(() => { if (flash) flash.className = 'impact-flash'; }, 180);
+                    }
                 }
 
                 const dX = craneGroup.position.x - oldX;
@@ -1460,6 +1721,77 @@
             } else {
                 targetRingMat.color.setHex(0x00f3ff); // Cian normal
                 targetRingMat.opacity = Math.max(0.25, 0.65 - (distToGround / 60));
+            }
+
+            // === SISTEMA DE GESTIÓN DE MISIONES Y DETECCIÓN DE POSADO ===
+            const activeMission = missionTargets[currentMissionIndex];
+            if (activeMission) {
+                const distH = Math.hypot(tipWorld.x - activeMission.x, tipWorld.z - activeMission.z);
+                const targetTopY = activeMission.y + size * 0.5;
+                const diffY = Math.abs(loadYPos - targetTopY);
+
+                // Actualizar HUD de misión
+                const elDist = document.getElementById('missionDist');
+                const elAlt = document.getElementById('missionAlt');
+                const elProg = document.getElementById('missionProgress');
+                if (elDist) elDist.innerText = `${distH.toFixed(1)} m`;
+                if (elAlt) elAlt.innerText = `${diffY.toFixed(1)} m`;
+
+                // Cálculo de proximidad
+                const maxRange = 30.0;
+                const proxScore = Math.max(0, Math.min(100, (1 - (distH / maxRange)) * 100));
+                if (elProg) elProg.style.width = `${proxScore}%`;
+
+                // Criterio de entrega: dentro del radio objetivo, altura correcta y sin caída brusca
+                const inZone = (distH <= activeMission.radius) && (diffY <= 1.2);
+                const isGentle = speed <= 1.2;
+
+                if (inZone && isGentle) {
+                    landingStabilityTime += dt;
+                    if (elProg) elProg.style.background = '#f6e05e';
+
+                    // Requiere mantener la carga 1.2 segundos estable para validar
+                    if (landingStabilityTime >= 1.2) {
+                        totalScore += activeMission.points;
+                        landingStabilityTime = 0;
+
+                        // Efecto Toast de Éxito
+                        const toast = document.getElementById('missionToast');
+                        if (toast) {
+                            toast.innerText = `¡ENTREGA EXITOSA! +${activeMission.points} PTS`;
+                            toast.className = 'toast-success show';
+                            setTimeout(() => { if (toast) toast.className = 'toast-success'; }, 2500);
+                        }
+
+                        // Actualizar marcador
+                        const elScore = document.getElementById('missionScore');
+                        if (elScore) elScore.innerText = `${totalScore} PTS`;
+
+                        // Pasar a la siguiente misión
+                        currentMissionIndex = (currentMissionIndex + 1) % missionTargets.length;
+                        const nextM = missionTargets[currentMissionIndex];
+                        const elTag = document.getElementById('missionTag');
+                        const elTitle = document.getElementById('missionTitle');
+                        const elDesc = document.getElementById('missionDesc');
+                        if (elTag) elTag.innerText = `MISIÓN [${currentMissionIndex + 1}/3]`;
+                        if (elTitle) elTitle.innerText = nextM.name;
+                        if (elDesc) elDesc.innerText = nextM.desc;
+                    }
+                } else {
+                    landingStabilityTime = Math.max(0, landingStabilityTime - dt * 2.0);
+                    if (elProg) elProg.style.background = '#3fb950';
+                }
+
+                // Animar balizas de la misión activa (pulso y giro de columna de luz)
+                targetVisualGroups.forEach((tv, idx) => {
+                    const isCurrent = (idx === currentMissionIndex);
+                    tv.beam.visible = isCurrent;
+                    if (isCurrent) {
+                        const pulseScale = 1.0 + 0.12 * Math.sin(timeNow * 0.006);
+                        tv.ring.scale.set(pulseScale, pulseScale, 1);
+                        tv.beam.rotation.y += 0.5 * dt;
+                    }
+                });
             }
 
             controls.update();

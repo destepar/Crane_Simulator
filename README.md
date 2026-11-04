@@ -6,28 +6,29 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 
 ## 🏗️ Características Principales
 
-* **Física y Cinemática Vehicular Realista (Modelo Ackermann + Inercia):**
-  * Conducción tipo camión real de gran tonelaje: el vehículo **no gira en parado sobre su propio eje**.
-  * Aceleración progresiva, desaceleración por inercia/rozamiento y frenado activo.
-  * Marchas automáticas: Avance (**D**), Punto Muerto (**N**) y Marcha Atrás (**R**).
-  * Dirección con retorno progresivo del volante y radio de curvatura dinámico según la batalla (*wheelbase*) de la grúa.
-  * Rodadura física sincronizada en los 5 ejes (10 ruedas).
-* **Cinemática de Grúa y Telescopaje:**
-  * Carga optimizada del modelo glTF (`LTM 1110 LIEBHERR.gltf` + `.bin`).
-  * Despliegue secuencial de tramos telescópicos (1º a 6º tramo y flecha).
-  * Cilindro hidráulico interactivo con orientación dinámica (*lookAt*) entre camisa y vástago.
-* **Aparejo de Gancho 3D y Proyección Holográfica:**
-  * **Bloque de polea y gancho 3D (Hook Block):** Bloque de polea Liebherr con detalles amarillos/negros, gancho de acero curvado y 4 eslingas tensoras que sujetan la carga.
-  * **Retícula holográfica de suelo (Ground Target):** Proyección visual circular en el suelo o techo del edificio bajo la pluma, con efecto de pulso y cambio de color a amarillo de advertencia al descender la carga.
-* **Optimización Extrema de Rendimiento:**
-  * Ciudad procedural renderizada mediante **`InstancedMesh`** y búfer unificado de aristas: reducción de más de 140 llamadas de dibujado (*draw calls*) a **solo 2**, manteniendo 60 FPS estables.
-  * Iluminación PBR calibrada con sombras suaves libres de artefactos (`shadow.normalBias`).
-* **Telemetría y Sistema LMI (Load Moment Indicator):**
-  * Cálculo en tiempo real del Momento de Vuelco:
-    $$M = \text{Masa (t)} \times \text{Radio (m)}$$
-  * Cálculo de potencia motriz estimada en HP.
-  * Gráfico 2D dinámico (Canvas) con la curva de capacidad nominal y punto de trabajo actual.
-  * HUD vehicular superpuesto con velocímetro en tiempo real (**KM/H**), marcha actual (**D/N/R**) y ángulo de dirección.
+* **Modo Misiones y Sistema de Recompensas por Izado (Gameplay):**
+  * **Zona A (Suelo / Fácil - 100 PTS):** Bahía de carga en plataforma de suelo.
+  * **Zona B (Contenedores / Media - 250 PTS):** Posado de precisión sobre el 2º nivel de contenedores apilados en el patio logístico.
+  * **Zona C (Azotea Rascacielos / Experto - 500 PTS):** Izado técnico a más de 70m de altura sobre el helipuerto de la torre principal (operando en el límite LMI).
+  * **Detección de posado suave:** Requiere mantener la carga estable dentro de la diana a velocidad de izado segura ($v < 1.2\text{ m/s}$).
+  * HUD de Misión con telemetría en tiempo real: distancia horizontal, cota de altura, barra de aproximación y marcador acumulado de puntos.
+* **Gestión Avanzada de Colisiones (OBB Multi-Esfera + Rebote Elástico):**
+  * Detección de colisión orientada en 360° siguiendo la rotación real del chasis (morro, cabina y trasera).
+  * Respuesta elástica con absorción de impacto y desenganche automático de paredes.
+  * Alerta visual de impacto en cabina.
+* **Iluminación Diurna Natural y Renderizado PBR:**
+  * Iluminación de obra exterior radiante con cielo diurno azul luminoso y sol neutro.
+  * Mapa de entorno 360° (IBL) mediante `PMREMGenerator` para reflejos especulares de pintura y cromo.
+  * Sombras suaves de alta definición 4K (`PCFSoftShadowMap`).
+* **Display de Cabina Liebherr LICCON:**
+  * Selector de transmisión (**R / N / D**) con retroiluminación LED.
+  * Velocímetro digital rígido en **KM/H** con barra de aceleración.
+  * Tacómetro digital de **RPM del motor diésel** con respuesta de carga.
+  * Volante vectorial giratorio con lectura de grados de giro.
+* **Cinemática Realista de Grúa:**
+  * Pluma telescópica de 6 tramos con extensión secuencial y cable solidario a la punta.
+  * Aparejo de gancho 3D con polea Liebherr y 4 eslingas tensoras a la carga.
+  * Diagrama de capacidad LMI (Load Moment Indicator) con curva de vuelco en tiempo real.
 
 ---
 
@@ -36,49 +37,22 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 ### 🚚 Conducción del Camión
 | Tecla | Acción |
 | :--- | :--- |
-| `↑` (Flecha Arriba) | Acelerar hacia adelante / soltar para inercia |
-| `↓` (Flecha Abajo) | Frenar / Marcha atrás (al estar detenido) |
-| `←` (Flecha Izquierda) | Girar volante a la izquierda (gira solo en movimiento) |
-| `→` (Flecha Derecha) | Girar volante a la derecha (gira solo en movimiento) |
+| `↑` (Flecha Arriba) | Acelerar hacia adelante / soltar para freno de motor |
+| `↓` (Flecha Abajo) | Frenar / Marcha atrás inmediata al estar detenido |
+| `←` (Flecha Izquierda) | Girar dirección a la izquierda |
+| `→` (Flecha Derecha) | Girar dirección a la derecha |
 
 ### 🏗️ Operación de la Grúa
 | Tecla / Control | Acción |
 | :--- | :--- |
 | `Q` / `A` | Rotar cabina / superestructura (Izquierda / Derecha) |
-| `W` / `S` | Extender / Retraer pluma telescópica |
+| `W` / `S` | Extender / Retraer tramos de pluma |
 | `E` / `D` | Elevar / Descender ángulo de la pluma |
-| `Z` / `X` | Subir / Bajar cable del cabrestante |
-
-### 🎛️ Panel de Mandos Lateral (Sliders UI)
-* **Masa Carga (t):** Ajusta el peso del bloque suspendido (0.5 t – 50 t).
-* **Velocidad Cabrestante (m/s):** Modifica la rapidez del cable e influye en la potencia requerida (HP).
-* **Rotación, Extensión y Ángulo:** Sliders sincronizados bidireccionalmente con los controles del teclado.
-
-### 🎥 Cámara 3D (OrbitControls)
-* **Clic Izquierdo + Arrastrar:** Rotar vista orbital alrededor de la grúa.
-* **Clic Derecho + Arrastrar:** Desplazar la cámara (*pan*).
-* **Rueda del Ratón:** Zoom in / Zoom out.
+| `Z` / `X` | Enrollar / Desenrollar cable del cabrestante |
 
 ---
 
 ## 🚀 Cómo Ejecutar en Local (1 Clic)
 
 1. Haz **doble clic en `start.bat`**.
-2. Tu navegador predeterminado se abrirá automáticamente en [http://localhost:8000/](http://localhost:8000/).
-
----
-
-## 📁 Estructura del Proyecto
-
-```text
-Crane_Simulator/
-├── Assets3D/                       # Modelo 3D glTF optimizado (rastreado en Git)
-│   ├── LTM 1110 LIEBHERR.gltf      # Estructura de nodos, materiales y jerarquía
-│   └── LTM 1110 LIEBHERR.bin       # Datos binarios de mallas geométricas
-├── CAD/                            # Archivos fuente originales de diseño (ignorados en git)
-├── .gitignore                      # Reglas de exclusión de Git
-├── GruaTEst.html                   # Visor de prueba para inspección de piezas glTF
-├── index.html                      # Aplicación principal del simulador
-├── README.md                       # Documentación del proyecto
-└── start.bat                       # Lanzador en 1 clic para Windows
-```
+2. Tu navegador se abrirá automáticamente en [http://localhost:8000/](http://localhost:8000/).
