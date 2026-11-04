@@ -53,18 +53,20 @@
         /* Main Grid Layout */
         .dashboard {
             display: grid;
-            grid-template-columns: 350px 1fr 400px;
+            grid-template-columns: 280px 1fr 310px;
             flex-grow: 1;
+            min-height: 0;
+            height: calc(100vh - 52px);
             gap: 2px;
             background: #333;
         }
 
         .panel {
             background: #0a0a0a;
-            padding: 20px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 14px;
             overflow-y: auto;
         }
 
@@ -237,37 +239,43 @@
             }
         }
     
-        /* Display Digital de Cabina Liebherr (LICCON Style) */
+        /* Display Digital de Cabina Liebherr (LICCON Style - Rígido y Fijo) */
         .cockpit-panel {
             position: absolute;
-            bottom: 24px;
+            bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 10px 20px;
-            background: rgba(10, 13, 18, 0.92);
-            backdrop-filter: blur(10px);
+            width: calc(100% - 24px);
+            max-width: 440px;
+            box-sizing: border-box;
+            background: rgba(11, 15, 21, 0.94);
+            backdrop-filter: blur(12px);
             border: 1px solid #30363d;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             border-radius: 10px;
-            padding: 8px 16px;
+            padding: 6px 14px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            justify-content: space-between;
             z-index: 15;
             pointer-events: none;
             user-select: none;
+            font-variant-numeric: tabular-nums;
         }
 
         .cockpit-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            align-items: center;
+            gap: 2px;
+            min-width: 80px;
+            flex-shrink: 0;
         }
 
         .cockpit-sub {
             font-size: 0.58rem;
             color: #8b949e;
-            letter-spacing: 1.2px;
+            letter-spacing: 1px;
             font-family: 'Roboto Mono', monospace;
             text-transform: uppercase;
         }
@@ -275,7 +283,9 @@
         .cockpit-main-val {
             display: flex;
             align-items: baseline;
+            justify-content: center;
             gap: 4px;
+            width: 100%;
         }
 
         .cockpit-digits {
@@ -285,32 +295,41 @@
             color: #58a6ff;
             line-height: 1;
             letter-spacing: 0.5px;
+            display: inline-block;
+            width: 36px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
 
         .cockpit-digits.rpm {
             color: #f6e05e;
             font-size: 1.15rem;
+            width: 50px;
         }
 
         .cockpit-digits.steer {
-            font-size: 1.05rem;
+            font-size: 1.0rem;
             color: #e0e0e0;
+            width: 40px;
+            text-align: right;
         }
 
         .cockpit-unit {
             font-size: 0.62rem;
             color: #6e7681;
             font-family: 'Orbitron', sans-serif;
+            width: 28px;
+            text-align: left;
         }
 
-        /* Barras horizontales de progreso */
+        /* Barras horizontales de progreso LED */
         .cockpit-bar-track {
-            width: 75px;
+            width: 72px;
             height: 4px;
             background: #161b22;
             border-radius: 2px;
             overflow: hidden;
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         .cockpit-bar-fill {
@@ -329,8 +348,9 @@
         /* Divisores verticales sutiles */
         .cockpit-divider {
             width: 1px;
-            height: 34px;
+            height: 32px;
             background: #21262d;
+            flex-shrink: 0;
         }
 
         /* Selector de marchas PRND */
@@ -371,16 +391,19 @@
             box-shadow: 0 0 8px rgba(248, 81, 73, 0.5);
         }
 
-        /* Volante esquemático mini */
+        /* Volante esquemático mini de dimensiones fijas */
         .cockpit-steer-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            width: 76px;
         }
 
         .cockpit-wheel-mini {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
             transition: transform 0.05s ease-out;
         }
     </style>
@@ -536,31 +559,29 @@
         window.addEventListener('resize', resize2DCanvas);
         resize2DCanvas();
 
-        // --- 2. CONFIGURACIÓN DEL ENTORNO 3D ---
+        // --- 2. CONFIGURACIÓN DEL ENTORNO 3D Y RENDERIZADOR PBR ---
         const container3D = document.getElementById('canvas3DContainer');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x05080f);
 
+        // Atmósfera de obra industrial diurna (Cielo azul nórdico suave con bruma de horizonte)
+        const skyColor = new THREE.Color(0x1a2634);
+        scene.background = skyColor;
+        scene.fog = new THREE.FogExp2(0x1a2634, 0.0028);
 
+        const camera = new THREE.PerspectiveCamera(48, container3D.clientWidth / container3D.clientHeight, 0.1, 2000);
+        camera.position.set(-85, 55, 95);
 
-        // CORRECCIÓN 1: Niebla extendida para permitir zoom out
-        scene.fog = new THREE.Fog(0x05080f, 150, 800);
-
-        // CORRECCIÓN 2: Rango de cámara ampliado
-        const camera = new THREE.PerspectiveCamera(50, container3D.clientWidth / container3D.clientHeight, 0.1, 2000);
-        camera.position.set(-80, 60, 100);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
         renderer.setSize(container3D.clientWidth, container3D.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
+        renderer.toneMappingExposure = 1.15;
         container3D.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 15, 0);
+        controls.target.set(0, 12, 0);
         controls.maxPolarAngle = Math.PI / 2 - 0.02;
         controls.update();
 
@@ -570,71 +591,111 @@
             renderer.setSize(container3D.clientWidth, container3D.clientHeight);
         });
 
-        // --- LUZ DE APOYO (Adjunta a la cámara) ---
-        // Esta luz sigue a la cámara para que nunca veamos un lado "negro"
-        const fillLight = new THREE.PointLight(0xffffff, 0.5); // Luz suave
-        camera.add(fillLight); // ¡IMPORTANTE: La hacemos hija de la cámara!
-        scene.add(camera);     // Añadimos la cámara a la escena para que la luz actúe
+        // --- MAPA DE ENTORNO HD IBL (Image-Based Lighting para reflejos metálicos PBR) ---
+        // Genera reflejos de 360° para que los cilindros hidráulicos cromados, la pintura amarilla y el chasis tengan brillo natural
+        const pmremGen = new THREE.PMREMGenerator(renderer);
+        pmremGen.compileEquirectangularShader();
 
-        // --- 3. ILUMINACIÓN MEJORADA (Para vistas lejanas) ---
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+        const envScene = new THREE.Scene();
+        // Bóveda de cielo reflectante con gradiente cenit / horizonte / suelo
+        const skyDomeGeo = new THREE.SphereGeometry(150, 24, 16);
+        const skyCanvas = document.createElement('canvas');
+        skyCanvas.width = 512; skyCanvas.height = 256;
+        const sCtx = skyCanvas.getContext('2d');
+        const sGrad = sCtx.createLinearGradient(0, 0, 0, 256);
+        sGrad.addColorStop(0, '#3a6b9c');    // Azul cielo en el cenit
+        sGrad.addColorStop(0.5, '#7fa3c4');  // Bruma suave en el horizonte
+        sGrad.addColorStop(0.52, '#2b3038'); // Rebote oscuro de asfalto en el suelo
+        sGrad.addColorStop(1, '#181b20');
+        sCtx.fillStyle = sGrad;
+        sCtx.fillRect(0, 0, 512, 256);
+
+        const skyDomeTex = new THREE.CanvasTexture(skyCanvas);
+        const skyDomeMat = new THREE.MeshBasicMaterial({ map: skyDomeTex, side: THREE.BackSide });
+        envScene.add(new THREE.Mesh(skyDomeGeo, skyDomeMat));
+
+        // Reflejos del sol en el mapa ambiental
+        const sunReflectLight = new THREE.DirectionalLight(0xfff4e6, 3.0);
+        sunReflectLight.position.set(120, 200, 80);
+        envScene.add(sunReflectLight);
+
+        const envTexture = pmremGen.fromScene(envScene).texture;
+        scene.environment = envTexture;
+
+        // --- 3. ILUMINACIÓN CINEMATOGRÁFICA NATURAL ---
+        // Luz hemisférica: cielo azul diurno arriba, rebote de asfalto industrial abajo
+        const hemiLight = new THREE.HemisphereLight(0xbad7f5, 0x2d3440, 1.3);
+        hemiLight.position.set(0, 100, 0);
         scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
-        dirLight.position.set(150, 250, 100);
+        // Sol principal: luz direccional dorada con sombras de alta definición (4K)
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 2.4);
+        dirLight.position.set(130, 220, 90);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.mapSize.width = 4096;
+        dirLight.shadow.mapSize.height = 4096;
         dirLight.shadow.camera.near = 10;
-        dirLight.shadow.camera.far = 600;
-        dirLight.shadow.bias = -0.0004;
-        dirLight.shadow.normalBias = 0.04;
-        dirLight.shadow.camera.left = -200;
-        dirLight.shadow.camera.right = 200;
-        dirLight.shadow.camera.top = 200;
-        dirLight.shadow.camera.bottom = -200;
+        dirLight.shadow.camera.far = 550;
+        dirLight.shadow.camera.left = -160;
+        dirLight.shadow.camera.right = 160;
+        dirLight.shadow.camera.top = 160;
+        dirLight.shadow.camera.bottom = -160;
+        dirLight.shadow.bias = -0.0003;
+        dirLight.shadow.normalBias = 0.035;
         scene.add(dirLight);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+        // Luz de relleno suave para el reverso del chasis
+        const fillLight = new THREE.DirectionalLight(0x7da4cc, 0.45);
+        fillLight.position.set(-80, 50, -60);
+        scene.add(fillLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-        directionalLight.position.set(-10, 15, 20);
-        scene.add(directionalLight);
-
-        // Opcional: Aumentamos un poco la intensidad de la luz del cielo (hemiLight)
-        hemiLight.intensity = 2.0;
-
-        // --- 4. ENTORNO INDUSTRIAL ESTILIZADO Y MATRIZ DE COLISIONES ---
+        // --- 4. EXPLANADA DE HORMIGÓN INDUSTRIAL Y MATRIZ DE COLISIONES ---
         const cityGroup = new THREE.Group();
         scene.add(cityGroup);
 
         const obstacles = [];
 
-        // Generador de texturas procedurales Canvas
-        function createAsphaltTexture() {
+        // Generador de textura de losas de hormigón armado PBR (Sin cuadrículas fluorescentes)
+        function createHeavyConcreteTexture() {
             const c = document.createElement('canvas');
             c.width = 1024; c.height = 1024;
             const ctx = c.getContext('2d');
-            ctx.fillStyle = '#0a0d12';
+
+            // Hormigón gris industrial base
+            ctx.fillStyle = '#222831';
             ctx.fillRect(0, 0, 1024, 1024);
 
-            // Rejilla de losas de hormigón industrial
-            ctx.strokeStyle = '#151b23';
-            ctx.lineWidth = 4;
-            for (let i = 0; i <= 1024; i += 128) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1024); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1024, i); ctx.stroke();
+            // Textura sutil de micro-grano de árido
+            for (let i = 0; i < 4000; i++) {
+                const rx = Math.random() * 1024;
+                const ry = Math.random() * 1024;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.05)';
+                ctx.fillRect(rx, ry, 2, 2);
             }
 
-            // Marcas de seguridad viales (franjas amarillas / negras)
-            ctx.fillStyle = '#d29922';
-            for (let i = 256; i < 768; i += 40) {
+            // Juntas de dilatación de hormigón (losas de 8x8 metros)
+            ctx.strokeStyle = '#14181f';
+            ctx.lineWidth = 3;
+            for (let x = 0; x <= 1024; x += 128) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1024); ctx.stroke();
+            }
+            for (let y = 0; y <= 1024; y += 128) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1024, y); ctx.stroke();
+            }
+
+            // Franjas perimetrales de advertencia de obra (Safety Hazard Stripes amarillo/negro)
+            ctx.fillStyle = '#e6a100';
+            for (let x = 64; x < 960; x += 32) {
                 ctx.beginPath();
-                ctx.moveTo(i, 256); ctx.lineTo(i + 20, 256);
-                ctx.lineTo(i + 10, 270); ctx.lineTo(i - 10, 270);
+                ctx.moveTo(x, 64); ctx.lineTo(x + 16, 64);
+                ctx.lineTo(x, 76); ctx.lineTo(x - 16, 76);
                 ctx.closePath(); ctx.fill();
             }
+
+            // Bahía de estacionamiento de grúa (líneas blancas discretas de tráfico pesado)
+            ctx.strokeStyle = 'rgba(230, 235, 245, 0.4)';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(384, 384, 256, 256);
 
             const tex = new THREE.CanvasTexture(c);
             tex.wrapS = THREE.RepeatWrapping;
@@ -643,132 +704,24 @@
             return tex;
         }
 
-        function createBuildingTexture(accentColor) {
-            const c = document.createElement('canvas');
-            c.width = 512; c.height = 512;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#11151c';
-            ctx.fillRect(0, 0, 512, 512);
-
-            const rows = 14, cols = 8;
-            const pw = 512 / cols, ph = 512 / rows;
-            for (let r = 0; r < rows; r++) {
-                for (let col = 0; col < cols; col++) {
-                    const x = col * pw + 6;
-                    const y = r * ph + 6;
-                    const isLit = (Math.sin(r * 9 + col * 17) > 0.05);
-                    if (isLit) {
-                        ctx.fillStyle = (col + r) % 3 === 0 ? accentColor : 'rgba(180, 215, 255, 0.65)';
-                    } else {
-                        ctx.fillStyle = 'rgba(18, 26, 36, 0.95)';
-                    }
-                    ctx.fillRect(x, y, pw - 12, ph - 12);
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(x, y, pw - 12, ph - 12);
-                }
-            }
-            const tex = new THREE.CanvasTexture(c);
-            tex.wrapS = THREE.RepeatWrapping;
-            tex.wrapT = THREE.RepeatWrapping;
-            return tex;
-        }
-
-        function createHelipadTexture() {
-            const c = document.createElement('canvas');
-            c.width = 256; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#1a1f26';
-            ctx.fillRect(0, 0, 256, 256);
-
-            // Círculo exterior amarillo
-            ctx.strokeStyle = '#f6e05e';
-            ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.arc(128, 128, 95, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Círculo discontinuo blanco
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 4;
-            ctx.setLineDash([12, 8]);
-            ctx.beginPath();
-            ctx.arc(128, 128, 75, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Letra "H"
-            ctx.setLineDash([]);
-            ctx.font = 'bold 95px Roboto Mono, sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('H', 128, 128);
-
-            return new THREE.CanvasTexture(c);
-        }
-
-        function createContainerTexture(baseColorHex, codeText) {
-            const c = document.createElement('canvas');
-            c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-
-            // Color base del contenedor
-            ctx.fillStyle = baseColorHex;
-            ctx.fillRect(0, 0, 512, 256);
-
-            // Acanaladuras metálicas verticales (corrugado 3D)
-            for (let x = 12; x < 500; x += 16) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-                ctx.fillRect(x, 10, 6, 236);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-                ctx.fillRect(x + 6, 10, 6, 236);
-            }
-
-            // Marco perimetral reforzado
-            ctx.lineWidth = 12;
-            ctx.strokeStyle = 'rgba(10, 14, 20, 0.75)';
-            ctx.strokeRect(6, 6, 500, 244);
-
-            // Cantoneras esquineras ISO
-            ctx.fillStyle = '#1c2128';
-            ctx.fillRect(2, 2, 26, 26);
-            ctx.fillRect(484, 2, 26, 26);
-            ctx.fillRect(2, 228, 26, 26);
-            ctx.fillRect(484, 228, 26, 26);
-
-            // Código de contenedor
-            ctx.font = 'bold 20px Roboto Mono, monospace';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.fillText(codeText || 'LIEB-40FT', 40, 52);
-
-            return new THREE.CanvasTexture(c);
-        }
-
-        // Suelo industrial asfaltado
-        const asphaltTex = createAsphaltTexture();
+        // Suelo PBR de losas de hormigón de alta calidad
+        const concreteTex = createHeavyConcreteTexture();
         const planeGeo = new THREE.PlaneGeometry(800, 800);
         const planeMat = new THREE.MeshStandardMaterial({
-            map: asphaltTex,
-            roughness: 0.85,
-            metalness: 0.15
+            map: concreteTex,
+            roughness: 0.78,
+            metalness: 0.12
         });
         const plane = new THREE.Mesh(planeGeo, planeMat);
         plane.rotation.x = -Math.PI / 2;
         plane.receiveShadow = true;
         scene.add(plane);
 
-        const gridHelper = new THREE.GridHelper(800, 160, 0x00f3ff, 0x161b22);
-        gridHelper.position.y = 0.08;
-        gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.25;
-        scene.add(gridHelper);
-
-        // --- EDIFICIOS DE COLOR LISO TRANSPARENTE (VISIBILIDAD TOTAL) ---
-        // Material liso translúcido elegante: permite ver la grúa perfectamente desde cualquier ángulo
+        // --- EDIFICIOS DE CRISTAL TINTADO TRANSLÚCIDO LISO (SIN VENTANAS RUIDOSAS) ---
         const bldgMat = new THREE.MeshStandardMaterial({
             color: 0x142030,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.20,
             roughness: 0.1,
             metalness: 0.2,
             depthWrite: false
@@ -776,14 +729,14 @@
         const roofMat = new THREE.MeshStandardMaterial({
             color: 0x1b283b,
             transparent: true,
-            opacity: 0.25,
+            opacity: 0.28,
             roughness: 0.3,
             depthWrite: false
         });
         const bldgEdgeMat = new THREE.LineBasicMaterial({
             color: 0x388bfd,
             transparent: true,
-            opacity: 0.35
+            opacity: 0.32
         });
 
         const citySize = 350;
@@ -817,12 +770,10 @@
                 bldgMesh.receiveShadow = true;
                 cityGroup.add(bldgMesh);
 
-                // Aristas luminosas finas para contorno arquitectónico
                 const bEdges = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), bldgEdgeMat);
                 bEdges.position.copy(bldgMesh.position);
                 cityGroup.add(bEdges);
 
-                // Obstáculo de colisión
                 obstacles.push({
                     minX: posX - width / 2,
                     maxX: posX + width / 2,
@@ -833,26 +784,57 @@
             }
         }
 
-        // --- PATIO DE CONTENEDORES MULTICOLOR ESTILIZADO (Terminal de Carga) ---
+        // --- PATIO DE CONTENEDORES INTERMODALES 40FT ---
+        function createContainerTexture(baseColorHex, codeText) {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 256;
+            const ctx = c.getContext('2d');
+
+            ctx.fillStyle = baseColorHex;
+            ctx.fillRect(0, 0, 512, 256);
+
+            for (let x = 12; x < 500; x += 16) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+                ctx.fillRect(x, 10, 6, 236);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+                ctx.fillRect(x + 6, 10, 6, 236);
+            }
+
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = 'rgba(10, 14, 20, 0.75)';
+            ctx.strokeRect(6, 6, 500, 244);
+
+            ctx.fillStyle = '#1c2128';
+            ctx.fillRect(2, 2, 26, 26);
+            ctx.fillRect(484, 2, 26, 26);
+            ctx.fillRect(2, 228, 26, 26);
+            ctx.fillRect(484, 228, 26, 26);
+
+            ctx.font = 'bold 20px Roboto Mono, monospace';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillText(codeText || 'LIEB-40FT', 40, 52);
+
+            return new THREE.CanvasTexture(c);
+        }
+
         const containerColors = [
-            { hex: '#0e5f96', code: 'MAERSK' },    // Azul ultramar
-            { hex: '#b33927', code: 'K-LINE' },    // Rojo óxido
-            { hex: '#d9651e', code: 'HAPAG' },     // Naranja industrial
-            { hex: '#1e683b', code: 'EVERGREEN' }, // Verde oscuro
-            { hex: '#c99a18', code: 'LIEBHERR' }   // Amarillo de seguridad
+            { hex: '#0e5f96', code: 'MAERSK' },
+            { hex: '#b33927', code: 'K-LINE' },
+            { hex: '#d9651e', code: 'HAPAG' },
+            { hex: '#1e683b', code: 'EVERGREEN' },
+            { hex: '#c99a18', code: 'LIEBHERR' }
         ];
 
-        const containerGeo = new THREE.BoxGeometry(6, 5, 14); // Dimensiones realistas 40ft
+        const containerGeo = new THREE.BoxGeometry(6, 5, 14);
         const cRoofMat = new THREE.MeshStandardMaterial({ color: 0x1f242c, roughness: 0.8 });
 
-        // Generar filas ordenadas de contenedores apilados en el patio logístico
         const yardStartX = 25;
         const yardStartZ = -30;
         let cIdx = 0;
 
         for (let row = 0; row < 3; row++) {
             for (let bay = 0; bay < 4; bay++) {
-                const stackHeight = 1 + (bay % 3); // Pilas de 1 a 3 alturas
+                const stackHeight = 1 + (bay % 3);
                 const cx = yardStartX + row * 16;
                 const cz = yardStartZ + bay * 18;
 
@@ -875,7 +857,6 @@
                     scene.add(crate);
                 }
 
-                // Guardar la pila completa de contenedores en la matriz de colisión
                 obstacles.push({
                     minX: cx - 3.2, maxX: cx + 3.2,
                     minZ: cz - 7.2, maxZ: cz + 7.2,
@@ -884,7 +865,6 @@
             }
         }
 
-        // FUNCIÓN ESCÁNER DE SUELO (Raycast Lógico)
         function getGroundHeightAt(x, z) {
             let maxH = 0;
             for (let obs of obstacles) {
