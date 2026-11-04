@@ -237,178 +237,151 @@
             }
         }
     
-        /* Cockpit Tablero Liebherr (Dashboard Pesado) */
-        .cockpit-bar {
+        /* Display Digital de Cabina Liebherr (LICCON Style) */
+        .cockpit-panel {
             position: absolute;
-            bottom: 20px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(180deg, rgba(22, 27, 34, 0.94) 0%, rgba(13, 17, 23, 0.98) 100%);
-            backdrop-filter: blur(12px);
+            padding: 10px 20px;
+            background: rgba(10, 13, 18, 0.92);
+            backdrop-filter: blur(10px);
             border: 1px solid #30363d;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 15px rgba(88, 166, 255, 0.12);
-            border-radius: 14px;
-            padding: 10px 22px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
-            gap: 22px;
+            gap: 14px;
             z-index: 15;
             pointer-events: none;
             user-select: none;
         }
 
-        /* Relojes circulares analógico-digitales */
-        .cockpit-gauge-box {
+        .cockpit-group {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            width: 76px;
+            gap: 3px;
         }
 
-        .gauge-svg-wrap {
-            width: 72px;
-            height: 48px;
-            position: relative;
+        .cockpit-sub {
+            font-size: 0.58rem;
+            color: #8b949e;
+            letter-spacing: 1.2px;
+            font-family: 'Roboto Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        .cockpit-main-val {
             display: flex;
-            justify-content: center;
-            align-items: flex-end;
+            align-items: baseline;
+            gap: 4px;
         }
 
-        .gauge-svg {
-            width: 100%;
-            height: 100%;
-            overflow: visible;
-        }
-
-        .cockpit-gauge-val {
-            position: absolute;
-            bottom: 2px;
+        .cockpit-digits {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.35rem;
             font-weight: 700;
             color: #58a6ff;
             line-height: 1;
+            letter-spacing: 0.5px;
         }
 
-        .cockpit-gauge-lbl {
+        .cockpit-digits.rpm {
+            color: #f6e05e;
+            font-size: 1.15rem;
+        }
+
+        .cockpit-digits.steer {
+            font-size: 1.05rem;
+            color: #e0e0e0;
+        }
+
+        .cockpit-unit {
             font-size: 0.62rem;
-            color: #8b949e;
-            letter-spacing: 1px;
-            margin-top: 4px;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        /* Volante esquemático */
-        .cockpit-wheel-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 0 6px;
-            border-left: 1px solid #21262d;
-            border-right: 1px solid #21262d;
-        }
-
-        .cockpit-wheel-svg-wrap {
-            width: 58px;
-            height: 58px;
-        }
-
-        .cockpit-wheel-svg {
-            width: 100%;
-            height: 100%;
-            transition: transform 0.06s ease-out;
-        }
-
-        .cockpit-steer-val {
+            color: #6e7681;
             font-family: 'Orbitron', sans-serif;
-            font-size: 0.72rem;
-            color: #c9d1d9;
         }
 
-        /* Selector de marchas PRND estilo display digital */
-        .cockpit-transmission {
+        /* Barras horizontales de progreso */
+        .cockpit-bar-track {
+            width: 75px;
+            height: 4px;
+            background: #161b22;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .cockpit-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #58a6ff;
+            box-shadow: 0 0 6px rgba(88, 166, 255, 0.6);
+            transition: width 0.08s ease-out;
+        }
+
+        .cockpit-bar-fill.rpm {
+            background: #f6e05e;
+            box-shadow: 0 0 6px rgba(246, 224, 94, 0.6);
+        }
+
+        /* Divisores verticales sutiles */
+        .cockpit-divider {
+            width: 1px;
+            height: 34px;
+            background: #21262d;
+        }
+
+        /* Selector de marchas PRND */
+        .cockpit-gears {
             display: flex;
-            gap: 6px;
-            background: #0d1117;
-            padding: 4px 8px;
-            border-radius: 8px;
+            gap: 4px;
+            background: #161b22;
+            padding: 3px 5px;
+            border-radius: 5px;
             border: 1px solid #21262d;
         }
 
-        .gear-badge {
+        .gear-slot {
             font-family: 'Orbitron', sans-serif;
-            font-size: 0.95rem;
+            font-size: 0.82rem;
             font-weight: bold;
-            color: #30363d;
-            padding: 4px 10px;
-            border-radius: 5px;
-            transition: all 0.15s ease;
-        }
-
-        .gear-badge.active.gear-d {
-            background: rgba(46, 160, 67, 0.25);
-            color: #3fb950;
-            box-shadow: 0 0 10px rgba(63, 185, 80, 0.45);
-        }
-
-        .gear-badge.active.gear-n {
-            background: rgba(210, 153, 34, 0.25);
-            color: #d29922;
-            box-shadow: 0 0 10px rgba(210, 153, 34, 0.45);
-        }
-
-        .gear-badge.active.gear-r {
-            background: rgba(248, 81, 73, 0.25);
-            color: #f85149;
-            box-shadow: 0 0 10px rgba(248, 81, 73, 0.45);
-        }
-
-        /* Indicador de pedales y freno neumático */
-        .cockpit-pedals {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .pedal-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .pedal-bar-bg {
-            width: 11px;
-            height: 42px;
-            background: #0d1117;
-            border: 1px solid #30363d;
+            color: #484f58;
+            padding: 2px 7px;
             border-radius: 3px;
+            transition: all 0.12s ease;
+        }
+
+        .gear-slot.active.gear-d {
+            background: rgba(46, 160, 67, 0.3);
+            color: #3fb950;
+            box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+        }
+
+        .gear-slot.active.gear-n {
+            background: rgba(210, 153, 34, 0.3);
+            color: #d29922;
+            box-shadow: 0 0 8px rgba(210, 153, 34, 0.5);
+        }
+
+        .gear-slot.active.gear-r {
+            background: rgba(248, 81, 73, 0.3);
+            color: #f85149;
+            box-shadow: 0 0 8px rgba(248, 81, 73, 0.5);
+        }
+
+        /* Volante esquemático mini */
+        .cockpit-steer-row {
             display: flex;
-            flex-direction: column-reverse;
-            overflow: hidden;
+            align-items: center;
+            gap: 8px;
         }
 
-        .pedal-bar-fill {
-            width: 100%;
-            height: 0%;
-            transition: height 0.12s ease-out;
-        }
-
-        .pedal-bar-fill.gas {
-            background: linear-gradient(180deg, #3fb950 0%, #2ea043 100%);
-            box-shadow: 0 0 8px rgba(63, 185, 80, 0.6);
-        }
-
-        .pedal-bar-fill.brake {
-            background: linear-gradient(180deg, #f85149 0%, #da3633 100%);
-            box-shadow: 0 0 8px rgba(248, 81, 73, 0.6);
-        }
-
-        .pedal-txt {
-            font-size: 0.6rem;
-            color: #8b949e;
-            font-family: 'Roboto Mono', monospace;
+        .cockpit-wheel-mini {
+            width: 30px;
+            height: 30px;
+            transition: transform 0.05s ease-out;
         }
     </style>
 </head>
@@ -445,74 +418,72 @@
         </div>
 
         <div class="camera-view">
-            <div class="cam-overlay">CAM_01 // LIEBHERR LTM 1110 // TELEMETRÍA ONLINE<br>
-                <span id="fps">FPS: 60</span> | MOTOR DIÉSEL OK | MATRIZ AABB ONLINE
+            <div class="cam-overlay">
+                <div>CAM_01 // LIEBHERR LTM 1110 // TELEMETRÍA ONLINE</div>
+                <div style="font-size: 0.72rem; color: #8b949e; margin-top: 2px;">
+                    <span id="fps">FPS: 60</span> | Flechas: Conducir | Q/A: Giro Cabina | W/S: Pluma | E/D: Ángulo | Z/X: Cabrestante
+                </div>
             </div>
 
-            <!-- COCKPIT INFERIOR DE CONDUCCIÓN (TABLERO LIEBHERR) -->
-            <div class="cockpit-bar">
-                <!-- Tacómetro RPM Diésel -->
-                <div class="cockpit-gauge-box">
-                    <div class="gauge-svg-wrap">
-                        <svg class="gauge-svg" viewBox="0 0 80 50">
-                            <path d="M 10 45 A 35 35 0 0 1 70 45" fill="none" stroke="#21262d" stroke-width="6" stroke-linecap="round" />
-                            <path id="gaugeRpmArc" d="M 10 45 A 35 35 0 0 1 70 45" fill="none" stroke="#d29922" stroke-width="6" stroke-dasharray="95" stroke-dashoffset="65" stroke-linecap="round" />
-                        </svg>
-                        <div class="cockpit-gauge-val" id="cockpitRpm" style="color: #e0e0e0; font-size: 1.1rem;">750</div>
-                    </div>
-                    <div class="cockpit-gauge-lbl">RPM MOTOR</div>
-                </div>
-
-                <!-- Velocímetro Digital con Arco Progresivo -->
-                <div class="cockpit-gauge-box">
-                    <div class="gauge-svg-wrap">
-                        <svg class="gauge-svg" viewBox="0 0 80 50">
-                            <path d="M 10 45 A 35 35 0 0 1 70 45" fill="none" stroke="#21262d" stroke-width="6" stroke-linecap="round" />
-                            <path id="gaugeSpeedArc" d="M 10 45 A 35 35 0 0 1 70 45" fill="none" stroke="#58a6ff" stroke-width="6" stroke-dasharray="95" stroke-dashoffset="95" stroke-linecap="round" />
-                        </svg>
-                        <div class="cockpit-gauge-val" id="cockpitSpeed">0</div>
-                    </div>
-                    <div class="cockpit-gauge-lbl">KM/H</div>
-                </div>
-
-                <!-- Volante Industrial Liebherr Giratorio -->
-                <div class="cockpit-wheel-card">
-                    <div class="cockpit-wheel-svg-wrap">
-                        <svg id="cockpitWheel" viewBox="0 0 100 100" class="cockpit-wheel-svg">
-                            <circle cx="50" cy="50" r="44" stroke="#58a6ff" stroke-width="6" fill="#0d1117" opacity="0.9" />
-                            <circle cx="50" cy="50" r="41" stroke="#21262d" stroke-width="2" fill="none" />
-                            <rect x="47" y="6" width="6" height="8" fill="#f85149" rx="2" />
-                            <line x1="50" y1="50" x2="8" y2="50" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
-                            <line x1="50" y1="50" x2="92" y2="50" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
-                            <line x1="50" y1="50" x2="50" y2="92" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
-                            <circle cx="50" cy="50" r="14" fill="#161b22" stroke="#30363d" stroke-width="2" />
-                            <polygon points="50,42 57,46 57,54 50,58 43,54 43,46" fill="#f6c000" />
-                        </svg>
-                    </div>
-                    <div class="cockpit-steer-val" id="cockpitSteerAngle">0°</div>
-                </div>
-
+            <!-- DISPLAY DIGITAL DE CABINA LIEBHERR LICCON -->
+            <div class="cockpit-panel">
                 <!-- Selector de Transmisión -->
-                <div class="cockpit-transmission">
-                    <div class="gear-badge" id="badgeR">R</div>
-                    <div class="gear-badge active gear-n" id="badgeN">N</div>
-                    <div class="gear-badge" id="badgeD">D</div>
+                <div class="cockpit-group">
+                    <span class="cockpit-sub">MARCHA</span>
+                    <div class="cockpit-gears">
+                        <span class="gear-slot" id="badgeR">R</span>
+                        <span class="gear-slot active gear-n" id="badgeN">N</span>
+                        <span class="gear-slot" id="badgeD">D</span>
+                    </div>
                 </div>
 
-                <!-- Telemetría de Pedales -->
-                <div class="cockpit-pedals">
-                    <div class="pedal-wrap">
-                        <div class="pedal-bar-bg"><div class="pedal-bar-fill gas" id="pedalGas"></div></div>
-                        <span class="pedal-txt">GAS</span>
+                <div class="cockpit-divider"></div>
+
+                <!-- Velocímetro Digital -->
+                <div class="cockpit-group">
+                    <span class="cockpit-sub">VELOCIDAD</span>
+                    <div class="cockpit-main-val">
+                        <span class="cockpit-digits" id="cockpitSpeed">0</span>
+                        <span class="cockpit-unit">KM/H</span>
                     </div>
-                    <div class="pedal-wrap">
-                        <div class="pedal-bar-bg"><div class="pedal-bar-fill brake" id="pedalBrake"></div></div>
-                        <span class="pedal-txt">BRK</span>
+                    <div class="cockpit-bar-track">
+                        <div class="cockpit-bar-fill" id="speedBarFill"></div>
+                    </div>
+                </div>
+
+                <div class="cockpit-divider"></div>
+
+                <!-- Tacómetro Diésel RPM -->
+                <div class="cockpit-group">
+                    <span class="cockpit-sub">DIÉSEL RPM</span>
+                    <div class="cockpit-main-val">
+                        <span class="cockpit-digits rpm" id="cockpitRpm">700</span>
+                        <span class="cockpit-unit">RPM</span>
+                    </div>
+                    <div class="cockpit-bar-track">
+                        <div class="cockpit-bar-fill rpm" id="rpmBarFill"></div>
+                    </div>
+                </div>
+
+                <div class="cockpit-divider"></div>
+
+                <!-- Volante y Dirección -->
+                <div class="cockpit-group">
+                    <span class="cockpit-sub">DIRECCIÓN</span>
+                    <div class="cockpit-steer-row">
+                        <svg id="cockpitWheel" viewBox="0 0 40 40" class="cockpit-wheel-mini">
+                            <circle cx="20" cy="20" r="17" stroke="#58a6ff" stroke-width="2.5" fill="none" opacity="0.85" />
+                            <rect x="18.5" y="2" width="3" height="4" fill="#f85149" rx="1" />
+                            <line x1="20" y1="20" x2="4" y2="20" stroke="#58a6ff" stroke-width="2" />
+                            <line x1="20" y1="20" x2="36" y2="20" stroke="#58a6ff" stroke-width="2" />
+                            <line x1="20" y1="20" x2="20" y2="36" stroke="#58a6ff" stroke-width="2" />
+                            <circle cx="20" cy="20" r="5" fill="#161b22" stroke="#58a6ff" stroke-width="1.5" />
+                        </svg>
+                        <span class="cockpit-digits steer" id="cockpitSteerAngle">0°</span>
                     </div>
                 </div>
             </div>
 
-            <div class="help-overlay">Flechas: Conducir (Acelerar / Freno / Marcha Atrás / Dirección) | Q/A: Giro Cabina | W/S: Extender Pluma | E/D: Ángulo | Z/X: Cabrestante</div>
             <div id="canvas3DContainer"></div>
         </div>
 
@@ -792,50 +763,27 @@
         gridHelper.material.opacity = 0.25;
         scene.add(gridHelper);
 
-        // --- EDIFICIOS ARQUITECTÓNICOS MODERNOS ---
-        const bldgTex1 = createBuildingTexture('rgba(88, 166, 255, 0.8)');
-        const bldgTex2 = createBuildingTexture('rgba(246, 224, 94, 0.75)');
-
-        // Edificios con vidrio arquitectónico translúcido para mantener visibilidad de la grúa desde cualquier ángulo
-        const bldgMat1 = new THREE.MeshStandardMaterial({
-            map: bldgTex1,
+        // --- EDIFICIOS DE COLOR LISO TRANSPARENTE (VISIBILIDAD TOTAL) ---
+        // Material liso translúcido elegante: permite ver la grúa perfectamente desde cualquier ángulo
+        const bldgMat = new THREE.MeshStandardMaterial({
+            color: 0x142030,
             transparent: true,
-            opacity: 0.35,
-            depthWrite: false,
-            roughness: 0.2,
-            metalness: 0.5
-        });
-        const bldgMat2 = new THREE.MeshStandardMaterial({
-            map: bldgTex2,
-            transparent: true,
-            opacity: 0.35,
-            depthWrite: false,
-            roughness: 0.2,
-            metalness: 0.5
+            opacity: 0.18,
+            roughness: 0.1,
+            metalness: 0.2,
+            depthWrite: false
         });
         const roofMat = new THREE.MeshStandardMaterial({
-            color: 0x161b22,
+            color: 0x1b283b,
             transparent: true,
-            opacity: 0.45,
-            depthWrite: false,
-            roughness: 0.6
-        });
-        const hvacMat = new THREE.MeshStandardMaterial({
-            color: 0x30363d,
-            transparent: true,
-            opacity: 0.45,
-            depthWrite: false,
-            roughness: 0.5,
-            metalness: 0.5
+            opacity: 0.25,
+            roughness: 0.3,
+            depthWrite: false
         });
         const bldgEdgeMat = new THREE.LineBasicMaterial({
-            color: 0x58a6ff,
+            color: 0x388bfd,
             transparent: true,
-            opacity: 0.4
-        });
-        const helipadMat = new THREE.MeshStandardMaterial({
-            map: createHelipadTexture(),
-            roughness: 0.6
+            opacity: 0.35
         });
 
         const citySize = 350;
@@ -845,9 +793,6 @@
             seed = (seed * 9301 + 49297) % 233280;
             return seed / 233280;
         }
-
-        let tallestBuilding = null;
-        let maxBuildingH = 0;
 
         for (let x = -citySize; x <= citySize; x += 65) {
             for (let z = -citySize; z <= citySize; z += 65) {
@@ -864,35 +809,18 @@
                 let posX = x + offsetX;
                 let posZ = z + offsetZ;
 
-                const bMat = seededRandom() > 0.5 ? bldgMat1 : bldgMat2;
                 const bGeo = new THREE.BoxGeometry(width, height, depth);
                 const bldgMesh = new THREE.Mesh(bGeo, [
-                    bMat, bMat, roofMat, roofMat, bMat, bMat
+                    bldgMat, bldgMat, roofMat, roofMat, bldgMat, bldgMat
                 ]);
                 bldgMesh.position.set(posX, height / 2, posZ);
                 bldgMesh.receiveShadow = true;
                 cityGroup.add(bldgMesh);
 
-                // Aristas luminosas para definir el volumen arquitectónico
+                // Aristas luminosas finas para contorno arquitectónico
                 const bEdges = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), bldgEdgeMat);
                 bEdges.position.copy(bldgMesh.position);
                 cityGroup.add(bEdges);
-
-                // Casetón HVAC / Maquinaria en el tejado
-                const hvacW = width * 0.45;
-                const hvacD = depth * 0.45;
-                const hvacH = 4 + seededRandom() * 3;
-                const hvacMesh = new THREE.Mesh(new THREE.BoxGeometry(hvacW, hvacH, hvacD), hvacMat);
-                hvacMesh.position.set(posX, height + hvacH / 2, posZ);
-                hvacMesh.castShadow = true;
-                hvacMesh.receiveShadow = true;
-                cityGroup.add(hvacMesh);
-
-                // Buscar el edificio más adecuado para el helipuerto
-                if (height > maxBuildingH && Math.abs(posX) < 140 && Math.abs(posZ) < 140) {
-                    maxBuildingH = height;
-                    tallestBuilding = { x: posX, y: height, z: posZ, width, depth };
-                }
 
                 // Obstáculo de colisión
                 obstacles.push({
@@ -900,17 +828,9 @@
                     maxX: posX + width / 2,
                     minZ: posZ - depth / 2,
                     maxZ: posZ + depth / 2,
-                    height: height + hvacH
+                    height: height
                 });
             }
-        }
-
-        // Colocar Helipuerto en el tejado del rascacielos principal
-        if (tallestBuilding) {
-            const heliPlane = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), helipadMat);
-            heliPlane.rotation.x = -Math.PI / 2;
-            heliPlane.position.set(tallestBuilding.x, tallestBuilding.y + 0.1, tallestBuilding.z);
-            cityGroup.add(heliPlane);
         }
 
         // --- PATIO DE CONTENEDORES MULTICOLOR ESTILIZADO (Terminal de Carga) ---
@@ -1288,13 +1208,13 @@
                 else if (steerAngle < 0) steerAngle = Math.min(0, steerAngle + STEER_RETURN_RATE * dt);
             }
 
-            // 2. Acelerador, Frenos y Física de 60 Toneladas (Aceleración Progresiva y Pesada)
-            const FORWARD_MAX = 13.5;     // ~48 km/h en obra
-            const REVERSE_MAX = 4.5;      // ~16 km/h marcha atrás de maniobra
-            const FORWARD_ACCEL = 3.2;    // Aceleración progresiva y pesada de camión de 5 ejes
-            const REVERSE_ACCEL = 2.4;    // Aceleración suave en marcha atrás
-            const BRAKE_FORCE = 10.5;     // Frenos neumáticos de gran potencia
-            const HEAVY_COAST = 1.6;      // Inercia de rodadura realista de 60 toneladas
+            // 2. Acelerador, Frenos y Conducción Reactiva
+            const FORWARD_MAX = 14.0;     // ~50 km/h velocidad máxima
+            const REVERSE_MAX = 5.0;      // ~18 km/h marcha atrás
+            const FORWARD_ACCEL = 5.5;    // Aceleración reactiva y controlable
+            const REVERSE_ACCEL = 4.5;    // Marcha atrás ágil
+            const BRAKE_FORCE = 25.0;     // Frenado contundente inmediato
+            const HEAVY_COAST = 8.0;      // Desaceleración reactiva (vuelve a 0 en menos de 1 segundo)
 
             if (keys.ArrowUp) {
                 if (vehicleSpeed < -0.4) {
@@ -1355,76 +1275,64 @@
                 controls.target.set(craneGroup.position.x, 15, craneGroup.position.z);
             }
 
-            // 5. Actualizar Cockpit HUD Liebherr (Telemetría de 60 Toneladas)
+            // 5. Actualizar Display de Cabina LICCON
             const speedKmh = Math.round(Math.abs(vehicleSpeed) * 3.6);
             const steerDeg = Math.round(steerAngle * (180 / Math.PI));
 
-            // Simulación física de RPM motor diésel Liebherr (Ralentí 700 RPM, Trabajo 1800 RPM)
+            // Simulación física de RPM diésel
             const isAccelerating = (keys.ArrowUp && vehicleSpeed >= -0.4) || (keys.ArrowDown && vehicleSpeed < -0.2);
-            let targetRpm = 720;
+            let targetRpm = 700;
             if (isAccelerating) {
-                targetRpm = 1100 + (Math.abs(vehicleSpeed) / 13.5) * 850;
-            } else if (Math.abs(vehicleSpeed) > 1.0) {
-                targetRpm = 850 + (Math.abs(vehicleSpeed) / 13.5) * 450;
+                targetRpm = 1150 + (Math.abs(vehicleSpeed) / FORWARD_MAX) * 750;
+            } else if (Math.abs(vehicleSpeed) > 0.5) {
+                targetRpm = 800 + (Math.abs(vehicleSpeed) / FORWARD_MAX) * 350;
             }
-            if (!window.currentRpm) window.currentRpm = 720;
-            window.currentRpm += (targetRpm - window.currentRpm) * Math.min(1.0, dt * 5.0);
+            if (!window.currentRpm) window.currentRpm = 700;
+            window.currentRpm += (targetRpm - window.currentRpm) * Math.min(1.0, dt * 6.0);
 
+            // Valores numéricos nítidos sin superposición
             const elCockpitSpeed = document.getElementById('cockpitSpeed');
             if (elCockpitSpeed) elCockpitSpeed.innerText = speedKmh;
 
             const elCockpitRpm = document.getElementById('cockpitRpm');
             if (elCockpitRpm) elCockpitRpm.innerText = Math.round(window.currentRpm);
 
-            // Actualizar arcos gráficos SVG (Dashoffset: 95 = vacío, 0 = lleno)
-            const arcSpeed = document.getElementById('gaugeSpeedArc');
-            if (arcSpeed) {
-                const speedFrac = Math.min(1.0, Math.abs(vehicleSpeed) / 13.5);
-                arcSpeed.style.strokeDashoffset = `${95 - speedFrac * 95}`;
-            }
-
-            const arcRpm = document.getElementById('gaugeRpmArc');
-            if (arcRpm) {
-                const rpmFrac = Math.min(1.0, Math.max(0, (window.currentRpm - 600) / 1500));
-                arcRpm.style.strokeDashoffset = `${95 - rpmFrac * 95}`;
-                arcRpm.style.stroke = window.currentRpm > 1800 ? '#f85149' : (window.currentRpm > 1400 ? '#d29922' : '#3fb950');
-            }
-
             const elSteerAngle = document.getElementById('cockpitSteerAngle');
             if (elSteerAngle) elSteerAngle.innerText = `${steerDeg > 0 ? '+' : ''}${steerDeg}°`;
 
+            // Barras horizontales de progreso LED
+            const barSpeed = document.getElementById('speedBarFill');
+            if (barSpeed) {
+                barSpeed.style.width = `${Math.min(100, (Math.abs(vehicleSpeed) / FORWARD_MAX) * 100)}%`;
+            }
+
+            const barRpm = document.getElementById('rpmBarFill');
+            if (barRpm) {
+                const rpmPercent = Math.min(100, Math.max(0, ((window.currentRpm - 600) / 1400) * 100));
+                barRpm.style.width = `${rpmPercent}%`;
+            }
+
+            // Volante vectorial compacto
             const elWheel = document.getElementById('cockpitWheel');
             if (elWheel) elWheel.style.transform = `rotate(${steerDeg * 2.2}deg)`;
 
-            // Marchas PRND
+            // Selector de marchas PRND
             const bR = document.getElementById('badgeR');
             const bN = document.getElementById('badgeN');
             const bD = document.getElementById('badgeD');
             if (bR && bN && bD) {
-                bR.className = 'gear-badge';
-                bN.className = 'gear-badge';
-                bD.className = 'gear-badge';
+                bR.className = 'gear-slot';
+                bN.className = 'gear-slot';
+                bD.className = 'gear-slot';
                 if (vehicleSpeed > 0.2) {
-                    bD.className = 'gear-badge active gear-d';
+                    bD.className = 'gear-slot active gear-d';
                 } else if (vehicleSpeed < -0.2) {
-                    bR.className = 'gear-badge active gear-r';
+                    bR.className = 'gear-slot active gear-r';
                 } else {
-                    bN.className = 'gear-badge active gear-n';
+                    bN.className = 'gear-slot active gear-n';
                 }
             }
-
-            // Pedales dinámicos
-            const pGas = document.getElementById('pedalGas');
-            const pBrake = document.getElementById('pedalBrake');
-            if (pGas && pBrake) {
-                if (isAccelerating) pGas.style.height = '100%';
-                else pGas.style.height = (Math.abs(vehicleSpeed) > 1.5 ? '25%' : '0%');
-
-                if (keys.ArrowDown && vehicleSpeed >= 0.4) pBrake.style.height = '100%';
-                else if (keys.ArrowUp && vehicleSpeed < -0.4) pBrake.style.height = '100%';
-                else pBrake.style.height = '0%';
-            }
-
+            
             // CINEMÁTICA Y FÍSICA
             if (craneLoaded) {
 
