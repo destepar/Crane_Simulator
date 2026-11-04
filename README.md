@@ -6,47 +6,56 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
 
 ## 🏗️ Características Principales
 
-* **Modo Misiones y Sistema de Recompensas por Izado (Gameplay):**
-  * **Zona A (Suelo / Fácil - 100 PTS):** Bahía de carga en plataforma de suelo.
-  * **Zona B (Contenedores / Media - 250 PTS):** Posado de precisión sobre el 2º nivel de contenedores apilados en el patio logístico.
-  * **Zona C (Azotea Rascacielos / Experto - 500 PTS):** Izado técnico a más de 70m de altura sobre el helipuerto de la torre principal (operando en el límite LMI).
-  * **Detección de posado suave:** Requiere mantener la carga estable dentro de la diana a velocidad de izado segura ($v < 1.2\text{ m/s}$).
-  * HUD de Misión con telemetría en tiempo real: distancia horizontal, cota de altura, barra de aproximación y marcador acumulado de puntos.
+* **Modo Misiones con Dianas de Alta Visibilidad (Flechas 3D Flotantes):**
+  * **Flechas de Waypoint 3D:** Cada zona activa cuenta con una flecha flotante tridimensional en rojo vibrante con halo rotatorio y un haz de luz vertical visible desde cualquier punto del mapa.
+  * **Diana concéntrica bicolor:** Señalización de alto contraste en rojo y blanco reflectante en el suelo, sobre contenedores y en azoteas.
+  * **3 Misiones escalonadas:**
+    * **Zona A (Suelo — 100 PTS):** Bahía de carga a cota 0 (Fácil).
+    * **Zona B (Contenedores — 250 PTS):** Posado a 10m de altura sobre el stack de contenedores (Media).
+    * **Zona C (Helipuerto — 500 PTS):** Izado extremo a más de 70m en la azotea del rascacielos (Experto).
+* **Sistema Multi-Cámara Profesional (Teclas 1, 2, 3, 4):**
+  * **`1` — Cámara Grúa (Órbita Global):** Vista general para maniobra y conducción del chasis.
+  * **`2` — Cámara Gancho (Hook Cam):** Enfoca la carga suspendida desde arriba para posar con precisión milimétrica.
+  * **`3` — Cámara Zona (Target Cam):** Enfoca la plataforma de entrega y la flecha de misión activa.
+  * **`4` — Cámara Cabina (Cab Cam):** Vista desde el puesto del operador mirando hacia la pluma.
+  * *Transiciones suaves (LERP) y seguimiento automático de objetivos sin tirones.*
 * **Gestión Avanzada de Colisiones (OBB Multi-Esfera + Rebote Elástico):**
   * Detección de colisión orientada en 360° siguiendo la rotación real del chasis (morro, cabina y trasera).
-  * Respuesta elástica con absorción de impacto y desenganche automático de paredes.
-  * Alerta visual de impacto en cabina.
+  * Rebote elástico y desenganche suave de paredes para no quedarse trabado.
 * **Iluminación Diurna Natural y Renderizado PBR:**
-  * Iluminación de obra exterior radiante con cielo diurno azul luminoso y sol neutro.
-  * Mapa de entorno 360° (IBL) mediante `PMREMGenerator` para reflejos especulares de pintura y cromo.
-  * Sombras suaves de alta definición 4K (`PCFSoftShadowMap`).
+  * Atmósfera exterior luminosa bajo cielo diurno radiante y sol nítido.
+  * Mapa de entorno 360° (IBL) para reflejos realistas en pintura amarilla y metales cromados.
+  * Sombras suaves de alta definición 4K.
 * **Display de Cabina Liebherr LICCON:**
-  * Selector de transmisión (**R / N / D**) con retroiluminación LED.
-  * Velocímetro digital rígido en **KM/H** con barra de aceleración.
-  * Tacómetro digital de **RPM del motor diésel** con respuesta de carga.
-  * Volante vectorial giratorio con lectura de grados de giro.
-* **Cinemática Realista de Grúa:**
-  * Pluma telescópica de 6 tramos con extensión secuencial y cable solidario a la punta.
-  * Aparejo de gancho 3D con polea Liebherr y 4 eslingas tensoras a la carga.
-  * Diagrama de capacidad LMI (Load Moment Indicator) con curva de vuelco en tiempo real.
+  * Tacómetro digital de RPM diésel con respuesta dinámica.
+  * Velocímetro rígido sin deformaciones en KM/H con barra LED.
+  * Transmisión (**R / N / D**) y volante vectorial sincronizado.
 
 ---
 
 ## 🕹️ Controles del Simulador
+
+### 🎥 Selector de Cámaras
+| Tecla / Botón | Modo de Cámara |
+| :--- | :--- |
+| `1` | **Cámara Grúa:** Órbita alrededor del chasis del camión |
+| `2` | **Cámara Gancho:** Enfoca la carga para posar con precisión |
+| `3` | **Cámara Zona:** Enfoca la diana y la flecha objetivo activa |
+| `4` | **Cámara Cabina:** Vista desde el puesto del operador |
 
 ### 🚚 Conducción del Camión
 | Tecla | Acción |
 | :--- | :--- |
 | `↑` (Flecha Arriba) | Acelerar hacia adelante / soltar para freno de motor |
 | `↓` (Flecha Abajo) | Frenar / Marcha atrás inmediata al estar detenido |
-| `←` (Flecha Izquierda) | Girar dirección a la izquierda |
-| `→` (Flecha Derecha) | Girar dirección a la derecha |
+| `←` (Flecha Izquierda) | Girar volante a la izquierda |
+| `→` (Flecha Derecha) | Girar volante a la derecha |
 
 ### 🏗️ Operación de la Grúa
 | Tecla / Control | Acción |
 | :--- | :--- |
 | `Q` / `A` | Rotar cabina / superestructura (Izquierda / Derecha) |
-| `W` / `S` | Extender / Retraer tramos de pluma |
+| `W` / `S` | Extender / Retraer tramos telescópicos |
 | `E` / `D` | Elevar / Descender ángulo de la pluma |
 | `Z` / `X` | Enrollar / Desenrollar cable del cabrestante |
 

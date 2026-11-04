@@ -239,6 +239,53 @@
             }
         }
     
+        /* Selector de Modos de Cámara */
+        .cam-mode-selector {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            background: rgba(13, 17, 23, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid #30363d;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 4px 6px;
+            z-index: 15;
+            user-select: none;
+        }
+
+        .cam-btn {
+            background: #161b22;
+            border: 1px solid #21262d;
+            color: #8b949e;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.68rem;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cam-btn:hover {
+            color: #ffffff;
+            border-color: #58a6ff;
+            background: #21262d;
+        }
+
+        .cam-btn.active {
+            background: rgba(88, 166, 255, 0.22);
+            color: #58a6ff;
+            border-color: #58a6ff;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+        }
+
         /* Widget de Misión y Puntos de Entrega */
         .mission-card {
             position: absolute;
@@ -569,6 +616,14 @@
         <div class="camera-view">
             <div class="cam-overlay">
                 <div>CAM_01 // ONLINE <span id="fps" style="color: #3fb950; font-weight: bold; margin-left: 6px;">FPS: 60</span></div>
+            </div>
+
+            <!-- SELECTOR DE MODOS DE CÁMARA (TECLAS 1, 2, 3, 4) -->
+            <div class="cam-mode-selector">
+                <button class="cam-btn active" id="btnCam1" onclick="setCameraMode('orbit')">1: GRÚA</button>
+                <button class="cam-btn" id="btnCam2" onclick="setCameraMode('hook')">2: GANCHO</button>
+                <button class="cam-btn" id="btnCam3" onclick="setCameraMode('target')">3: ZONA</button>
+                <button class="cam-btn" id="btnCam4" onclick="setCameraMode('cab')">4: CABINA</button>
             </div>
 
             <!-- HUD DE MISIÓN Y PUNTOS -->
@@ -1064,44 +1119,150 @@
         let totalScore = 0;
         let landingStabilityTime = 0;
 
-        // Construir balizas 3D visuales para cada zona objetivo
+        // Construir balizas 3D visuales de ALTA VISIBILIDAD (Flecha 3D Flotante + Diana Bicolor)
         const targetVisualGroups = [];
+
+        // Generador de textura de diana concéntrica de alto contraste (Rojo de advertencia y Blanco reflectante)
+        function createTargetTexture() {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+
+            // Círculo exterior negro con reborde reflectante
+            ctx.fillStyle = '#0f141c';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Anillo exterior de advertencia rojo fuego
+            ctx.fillStyle = '#ff2233';
+            ctx.beginPath();
+            ctx.arc(256, 256, 240, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Anillo blanco reflectante
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(256, 256, 185, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Anillo rojo medio
+            ctx.fillStyle = '#ff2233';
+            ctx.beginPath();
+            ctx.arc(256, 256, 130, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Centro blanco de impacto
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(256, 256, 75, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Punto nuclear rojo
+            ctx.fillStyle = '#ff0022';
+            ctx.beginPath();
+            ctx.arc(256, 256, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cruz táctica de puntería
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(256, 20); ctx.lineTo(256, 492);
+            ctx.moveTo(20, 256); ctx.lineTo(492, 256);
+            ctx.stroke();
+
+            const tex = new THREE.CanvasTexture(c);
+            return tex;
+        }
+
+        const targetTex = createTargetTexture();
 
         missionTargets.forEach((t) => {
             const tGroup = new THREE.Group();
             tGroup.position.set(t.x, t.y, t.z);
 
-            // Anillo base con luz LED de balizamiento
-            const baseRing = new THREE.Mesh(
-                new THREE.RingGeometry(t.radius * 0.7, t.radius, 32),
-                new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.65, side: THREE.DoubleSide })
+            // 1. Diana concéntrica ultra visible en el suelo/plataforma
+            const targetPad = new THREE.Mesh(
+                new THREE.CircleGeometry(t.radius, 32),
+                new THREE.MeshStandardMaterial({
+                    map: targetTex,
+                    roughness: 0.3,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide
+                })
             );
-            baseRing.rotation.x = -Math.PI / 2;
-            tGroup.add(baseRing);
+            targetPad.rotation.x = -Math.PI / 2;
+            targetPad.position.y = 0.05;
+            targetPad.receiveShadow = true;
+            tGroup.add(targetPad);
 
-            // Diana interior pulsante
-            const innerDot = new THREE.Mesh(
-                new THREE.CircleGeometry(t.radius * 0.35, 16),
-                new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+            // Anillo exterior de luz pulsante neón
+            const neonRing = new THREE.Mesh(
+                new THREE.RingGeometry(t.radius * 0.98, t.radius * 1.15, 32),
+                new THREE.MeshBasicMaterial({ color: 0xff3344, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
             );
-            innerDot.rotation.x = -Math.PI / 2;
-            tGroup.add(innerDot);
+            neonRing.rotation.x = -Math.PI / 2;
+            neonRing.position.y = 0.08;
+            tGroup.add(neonRing);
 
-            // Haz volumétrico vertical translúcido (columna de luz localizadora)
-            const beamGeo = new THREE.CylinderGeometry(t.radius * 0.85, t.radius, 35, 16, 1, true);
+            // 2. FLECHA 3D FLOTANTE HOLOGRÁFICA (Waypoint flotante en el aire)
+            const arrowGroup = new THREE.Group();
+            arrowGroup.position.y = 5.5; // Flota a 5.5 metros de altura sobre la plataforma
+
+            // Cono invertido rojo brillante que apunta directamente al centro de la diana
+            const coneGeo = new THREE.ConeGeometry(1.6, 3.2, 16);
+            const arrowMat = new THREE.MeshStandardMaterial({
+                color: 0xff1e38,
+                emissive: 0xff0028,
+                emissiveIntensity: 0.85,
+                roughness: 0.2,
+                metalness: 0.3
+            });
+            const coneMesh = new THREE.Mesh(coneGeo, arrowMat);
+            coneMesh.rotation.x = Math.PI; // Punta hacia abajo
+            coneMesh.position.y = 1.6;
+            coneMesh.castShadow = true;
+            arrowGroup.add(coneMesh);
+
+            // Fuste superior de la flecha
+            const shaftMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 2.2, 16), arrowMat);
+            shaftMesh.position.y = 4.0;
+            shaftMesh.castShadow = true;
+            arrowGroup.add(shaftMesh);
+
+            // Halo circular giratorio alrededor de la flecha
+            const haloMesh = new THREE.Mesh(
+                new THREE.TorusGeometry(2.2, 0.12, 12, 24),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 })
+            );
+            haloMesh.rotation.x = Math.PI / 2;
+            haloMesh.position.y = 3.6;
+            arrowGroup.add(haloMesh);
+
+            tGroup.add(arrowGroup);
+
+            // 3. Columna de luz vertical (Beacon Beam de 60m para localización a distancia)
+            const beamGeo = new THREE.CylinderGeometry(t.radius * 0.9, t.radius * 1.1, 70, 16, 1, true);
             const beamMat = new THREE.MeshBasicMaterial({
-                color: t.color,
+                color: 0xff2244,
                 transparent: true,
-                opacity: 0.12,
+                opacity: 0.16,
                 side: THREE.DoubleSide,
                 depthWrite: false
             });
             const beam = new THREE.Mesh(beamGeo, beamMat);
-            beam.position.y = 17.5;
+            beam.position.y = 35;
             tGroup.add(beam);
 
             scene.add(tGroup);
-            targetVisualGroups.push({ group: tGroup, ring: baseRing, dot: innerDot, beam, data: t });
+            targetVisualGroups.push({
+                group: tGroup,
+                pad: targetPad,
+                ring: neonRing,
+                arrow: arrowGroup,
+                halo: haloMesh,
+                beam,
+                data: t
+            });
         });
 
         // --- 5. MODELO DE GRÚA ---
@@ -1299,7 +1460,50 @@
         const WHEELBASE = 15.0;       // Batalla efectiva entre ejes del camión Liebherr
 
         const keys = {};
+        // --- SISTEMA MULTI-CÁMARA PROFESIONAL (Órbita, Gancho, Zona, Cabina) ---
+        let currentCameraMode = 'orbit'; // 'orbit', 'hook', 'target', 'cab'
+
+        function setCameraMode(mode) {
+            currentCameraMode = mode;
+
+            // Actualizar botones UI
+            const btns = { orbit: 'btnCam1', hook: 'btnCam2', target: 'btnCam3', cab: 'btnCam4' };
+            Object.keys(btns).forEach(m => {
+                const b = document.getElementById(btns[m]);
+                if (b) {
+                    if (m === mode) b.className = 'cam-btn active';
+                    else b.className = 'cam-btn';
+                }
+            });
+
+            // Reconfiguración inicial de cámara para el modo
+            const activeM = missionTargets[currentMissionIndex];
+            if (mode === 'hook') {
+                // Vista cenital/isométrica enfocando la carga de cerca
+                camera.position.set(loadMesh.position.x - 14, loadMesh.position.y + 16, loadMesh.position.z + 18);
+                controls.target.copy(loadMesh.position);
+            } else if (mode === 'target' && activeM) {
+                // Vista cinematográfica de la plataforma objetivo
+                camera.position.set(activeM.x - 18, activeM.y + 12, activeM.z + 20);
+                controls.target.set(activeM.x, activeM.y + 1.0, activeM.z);
+            } else if (mode === 'cab') {
+                if (cabinNode) {
+                    const cabPos = new THREE.Vector3();
+                    cabinNode.getWorldPosition(cabPos);
+                    camera.position.set(cabPos.x, cabPos.y + 4.5, cabPos.z);
+                }
+            }
+            controls.update();
+        }
+        window.setCameraMode = setCameraMode;
+
         window.addEventListener('keydown', (e) => {
+            // Teclas rápidas numéricas para alternar cámaras al vuelo
+            if (e.key === '1') setCameraMode('orbit');
+            if (e.key === '2') setCameraMode('hook');
+            if (e.key === '3') setCameraMode('target');
+            if (e.key === '4') setCameraMode('cab');
+
             keys[e.key] = true;
             keys[e.key.toLowerCase()] = true;
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -1738,12 +1942,12 @@
                 if (elAlt) elAlt.innerText = `${diffY.toFixed(1)} m`;
 
                 // Cálculo de proximidad
-                const maxRange = 30.0;
+                const maxRange = 35.0;
                 const proxScore = Math.max(0, Math.min(100, (1 - (distH / maxRange)) * 100));
                 if (elProg) elProg.style.width = `${proxScore}%`;
 
                 // Criterio de entrega: dentro del radio objetivo, altura correcta y sin caída brusca
-                const inZone = (distH <= activeMission.radius) && (diffY <= 1.2);
+                const inZone = (distH <= activeMission.radius) && (diffY <= 1.25);
                 const isGentle = speed <= 1.2;
 
                 if (inZone && isGentle) {
@@ -1760,7 +1964,7 @@
                         if (toast) {
                             toast.innerText = `¡ENTREGA EXITOSA! +${activeMission.points} PTS`;
                             toast.className = 'toast-success show';
-                            setTimeout(() => { if (toast) toast.className = 'toast-success'; }, 2500);
+                            setTimeout(() => { if (toast) toast.className = 'toast-success'; }, 2600);
                         }
 
                         // Actualizar marcador
@@ -1776,22 +1980,53 @@
                         if (elTag) elTag.innerText = `MISIÓN [${currentMissionIndex + 1}/3]`;
                         if (elTitle) elTitle.innerText = nextM.name;
                         if (elDesc) elDesc.innerText = nextM.desc;
+
+                        // Si la cámara estaba en modo zona objetivo, re-enfocar el nuevo objetivo
+                        if (currentCameraMode === 'target') {
+                            setCameraMode('target');
+                        }
                     }
                 } else {
                     landingStabilityTime = Math.max(0, landingStabilityTime - dt * 2.0);
                     if (elProg) elProg.style.background = '#3fb950';
                 }
 
-                // Animar balizas de la misión activa (pulso y giro de columna de luz)
+                // ANIMAR BALIZAS 3D Y FLECHA FLOTANTE VIBRANTE
                 targetVisualGroups.forEach((tv, idx) => {
                     const isCurrent = (idx === currentMissionIndex);
                     tv.beam.visible = isCurrent;
+                    tv.arrow.visible = isCurrent;
+
                     if (isCurrent) {
-                        const pulseScale = 1.0 + 0.12 * Math.sin(timeNow * 0.006);
+                        // Flecha flotante levitando y rotando sobre la diana
+                        const bob = Math.sin(timeNow * 0.005) * 0.75;
+                        tv.arrow.position.y = 5.2 + bob;
+                        tv.arrow.rotation.y += 2.0 * dt;
+                        tv.halo.rotation.z += 2.8 * dt;
+
+                        // Diana parpadeante con pulso neón
+                        const pulseScale = 1.0 + 0.1 * Math.sin(timeNow * 0.006);
                         tv.ring.scale.set(pulseScale, pulseScale, 1);
-                        tv.beam.rotation.y += 0.5 * dt;
+                        tv.beam.rotation.y += 0.4 * dt;
                     }
                 });
+            }
+
+            // --- ACTUALIZACIÓN DINÁMICA DE LA CÁMARA SEGÚN EL MODO ACTIVO ---
+            if (currentCameraMode === 'hook') {
+                // Modo 2: Cámara Gancho (Enfoca la carga suavemente para posar con precisión milimétrica)
+                controls.target.lerp(loadMesh.position, 0.12);
+            } else if (currentCameraMode === 'target' && activeMission) {
+                // Modo 3: Cámara Objetivo (Enfoca la plataforma y la flecha de entrega)
+                const targetCenter = new THREE.Vector3(activeMission.x, activeMission.y + 1.2, activeMission.z);
+                controls.target.lerp(targetCenter, 0.1);
+            } else if (currentCameraMode === 'cab') {
+                // Modo 4: Cámara Cabina (Sigue la punta de la pluma y la carga en el cielo)
+                controls.target.lerp(new THREE.Vector3(tipWorld.x, tipWorld.y * 0.65, tipWorld.z), 0.1);
+            } else {
+                // Modo 1: Órbita Chasis (Sigue el chasis de la grúa suavemente)
+                const craneCenter = new THREE.Vector3(craneGroup.position.x, 12, craneGroup.position.z);
+                controls.target.lerp(craneCenter, 0.08);
             }
 
             controls.update();
