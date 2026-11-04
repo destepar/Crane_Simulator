@@ -396,133 +396,318 @@
         // Opcional: Aumentamos un poco la intensidad de la luz del cielo (hemiLight)
         hemiLight.intensity = 2.0;
 
-        // --- 4. GENERACIÓN PROCEDURAL Y MATRIZ DE COLISIONES OPTIMIZADA ---
+        // --- 4. ENTORNO INDUSTRIAL ESTILIZADO Y MATRIZ DE COLISIONES ---
         const cityGroup = new THREE.Group();
         scene.add(cityGroup);
 
-        // Array para almacenar las "Cajas de Colisión" (Bounding Boxes)
         const obstacles = [];
 
+        // Generador de texturas procedurales Canvas
+        function createAsphaltTexture() {
+            const c = document.createElement('canvas');
+            c.width = 1024; c.height = 1024;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#0a0d12';
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // Rejilla de losas de hormigón industrial
+            ctx.strokeStyle = '#151b23';
+            ctx.lineWidth = 4;
+            for (let i = 0; i <= 1024; i += 128) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1024); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1024, i); ctx.stroke();
+            }
+
+            // Marcas de seguridad viales (franjas amarillas / negras)
+            ctx.fillStyle = '#d29922';
+            for (let i = 256; i < 768; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 256); ctx.lineTo(i + 20, 256);
+                ctx.lineTo(i + 10, 270); ctx.lineTo(i - 10, 270);
+                ctx.closePath(); ctx.fill();
+            }
+
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(6, 6);
+            return tex;
+        }
+
+        function createBuildingTexture(accentColor) {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#11151c';
+            ctx.fillRect(0, 0, 512, 512);
+
+            const rows = 14, cols = 8;
+            const pw = 512 / cols, ph = 512 / rows;
+            for (let r = 0; r < rows; r++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * pw + 6;
+                    const y = r * ph + 6;
+                    const isLit = (Math.sin(r * 9 + col * 17) > 0.05);
+                    if (isLit) {
+                        ctx.fillStyle = (col + r) % 3 === 0 ? accentColor : 'rgba(180, 215, 255, 0.65)';
+                    } else {
+                        ctx.fillStyle = 'rgba(18, 26, 36, 0.95)';
+                    }
+                    ctx.fillRect(x, y, pw - 12, ph - 12);
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, pw - 12, ph - 12);
+                }
+            }
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function createHelipadTexture() {
+            const c = document.createElement('canvas');
+            c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#1a1f26';
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Círculo exterior amarillo
+            ctx.strokeStyle = '#f6e05e';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.arc(128, 128, 95, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Círculo discontinuo blanco
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([12, 8]);
+            ctx.beginPath();
+            ctx.arc(128, 128, 75, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Letra "H"
+            ctx.setLineDash([]);
+            ctx.font = 'bold 95px Roboto Mono, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('H', 128, 128);
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        function createContainerTexture(baseColorHex, codeText) {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 256;
+            const ctx = c.getContext('2d');
+
+            // Color base del contenedor
+            ctx.fillStyle = baseColorHex;
+            ctx.fillRect(0, 0, 512, 256);
+
+            // Acanaladuras metálicas verticales (corrugado 3D)
+            for (let x = 12; x < 500; x += 16) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+                ctx.fillRect(x, 10, 6, 236);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+                ctx.fillRect(x + 6, 10, 6, 236);
+            }
+
+            // Marco perimetral reforzado
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = 'rgba(10, 14, 20, 0.75)';
+            ctx.strokeRect(6, 6, 500, 244);
+
+            // Cantoneras esquineras ISO
+            ctx.fillStyle = '#1c2128';
+            ctx.fillRect(2, 2, 26, 26);
+            ctx.fillRect(484, 2, 26, 26);
+            ctx.fillRect(2, 228, 26, 26);
+            ctx.fillRect(484, 228, 26, 26);
+
+            // Código de contenedor
+            ctx.font = 'bold 20px Roboto Mono, monospace';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillText(codeText || 'LIEB-40FT', 40, 52);
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Suelo industrial asfaltado
+        const asphaltTex = createAsphaltTexture();
         const planeGeo = new THREE.PlaneGeometry(800, 800);
-        const planeMat = new THREE.MeshStandardMaterial({ color: 0x080b10, depthWrite: false });
+        const planeMat = new THREE.MeshStandardMaterial({
+            map: asphaltTex,
+            roughness: 0.85,
+            metalness: 0.15
+        });
         const plane = new THREE.Mesh(planeGeo, planeMat);
         plane.rotation.x = -Math.PI / 2;
         plane.receiveShadow = true;
         scene.add(plane);
 
-        const gridHelper = new THREE.GridHelper(800, 200, 0x00f3ff, 0x0f192a);
-        gridHelper.position.y = 0.1;
+        const gridHelper = new THREE.GridHelper(800, 160, 0x00f3ff, 0x161b22);
+        gridHelper.position.y = 0.08;
         gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.35;
+        gridHelper.material.opacity = 0.25;
         scene.add(gridHelper);
 
-        // Construir datos de edificios
-        const bldgMat = new THREE.MeshStandardMaterial({ color: 0x1f6feb, transparent: true, opacity: 0.16, depthWrite: false });
-        const edgeMat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.35 });
+        // --- EDIFICIOS ARQUITECTÓNICOS MODERNOS ---
+        const bldgTex1 = createBuildingTexture('rgba(88, 166, 255, 0.8)');
+        const bldgTex2 = createBuildingTexture('rgba(246, 224, 94, 0.75)');
+
+        const bldgMat1 = new THREE.MeshStandardMaterial({
+            map: bldgTex1,
+            roughness: 0.4,
+            metalness: 0.35
+        });
+        const bldgMat2 = new THREE.MeshStandardMaterial({
+            map: bldgTex2,
+            roughness: 0.5,
+            metalness: 0.25
+        });
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: 0x1a212b,
+            roughness: 0.7
+        });
+        const hvacMat = new THREE.MeshStandardMaterial({
+            color: 0x30363d,
+            roughness: 0.5,
+            metalness: 0.6
+        });
+        const helipadMat = new THREE.MeshStandardMaterial({
+            map: createHelipadTexture(),
+            roughness: 0.6
+        });
 
         const citySize = 350;
-        const safeZone = 80;
-        const buildingsData = [];
-
-        // Generador procedural reproducible
+        const safeZone = 75;
         let seed = 42;
         function seededRandom() {
             seed = (seed * 9301 + 49297) % 233280;
             return seed / 233280;
         }
 
-        for (let x = -citySize; x <= citySize; x += 60) {
-            for (let z = -citySize; z <= citySize; z += 60) {
+        let tallestBuilding = null;
+        let maxBuildingH = 0;
+
+        for (let x = -citySize; x <= citySize; x += 65) {
+            for (let z = -citySize; z <= citySize; z += 65) {
                 if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
-                if (seededRandom() > 0.6) continue;
+                if (seededRandom() > 0.55) continue;
 
-                let offsetX = (seededRandom() - 0.5) * 10;
-                let offsetZ = (seededRandom() - 0.5) * 15;
+                let offsetX = (seededRandom() - 0.5) * 12;
+                let offsetZ = (seededRandom() - 0.5) * 12;
 
-                let height = 30 + seededRandom() * 90;
-                let width = 15 + seededRandom() * 15;
-                let depth = 15 + seededRandom() * 15;
+                let height = 35 + seededRandom() * 95;
+                let width = 18 + seededRandom() * 16;
+                let depth = 18 + seededRandom() * 16;
 
                 let posX = x + offsetX;
                 let posZ = z + offsetZ;
 
-                buildingsData.push({ posX, posZ, width, height, depth });
+                const bMat = seededRandom() > 0.5 ? bldgMat1 : bldgMat2;
+                const bGeo = new THREE.BoxGeometry(width, height, depth);
+                const bldgMesh = new THREE.Mesh(bGeo, [
+                    bMat, bMat, roofMat, roofMat, bMat, bMat
+                ]);
+                bldgMesh.position.set(posX, height / 2, posZ);
+                bldgMesh.castShadow = true;
+                bldgMesh.receiveShadow = true;
+                cityGroup.add(bldgMesh);
 
-                // GUARDAR OBSTÁCULO PARA COLISIÓN
+                // Casetón HVAC / Maquinaria en el tejado
+                const hvacW = width * 0.45;
+                const hvacD = depth * 0.45;
+                const hvacH = 4 + seededRandom() * 3;
+                const hvacMesh = new THREE.Mesh(new THREE.BoxGeometry(hvacW, hvacH, hvacD), hvacMat);
+                hvacMesh.position.set(posX, height + hvacH / 2, posZ);
+                hvacMesh.castShadow = true;
+                hvacMesh.receiveShadow = true;
+                cityGroup.add(hvacMesh);
+
+                // Buscar el edificio más adecuado para el helipuerto
+                if (height > maxBuildingH && Math.abs(posX) < 140 && Math.abs(posZ) < 140) {
+                    maxBuildingH = height;
+                    tallestBuilding = { x: posX, y: height, z: posZ, width, depth };
+                }
+
+                // Obstáculo de colisión
                 obstacles.push({
                     minX: posX - width / 2,
                     maxX: posX + width / 2,
                     minZ: posZ - depth / 2,
                     maxZ: posZ + depth / 2,
-                    height: height
+                    height: height + hvacH
                 });
             }
         }
 
-        // OPTIMIZACIÓN: InstancedMesh (1 Draw Call para todos los edificios)
-        const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
-        const instancedBldg = new THREE.InstancedMesh(unitBoxGeo, bldgMat, buildingsData.length);
-        const dummyMatrix = new THREE.Matrix4();
-        const dummyPos = new THREE.Vector3();
-        const dummyScale = new THREE.Vector3();
-        const dummyQuat = new THREE.Quaternion();
+        // Colocar Helipuerto en el tejado del rascacielos principal
+        if (tallestBuilding) {
+            const heliPlane = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), helipadMat);
+            heliPlane.rotation.x = -Math.PI / 2;
+            heliPlane.position.set(tallestBuilding.x, tallestBuilding.y + 0.1, tallestBuilding.z);
+            cityGroup.add(heliPlane);
+        }
 
-        // Buffer único para todas las aristas de los edificios (1 Draw Call para todas las líneas)
-        const edgePositions = [];
+        // --- PATIO DE CONTENEDORES MULTICOLOR ESTILIZADO (Terminal de Carga) ---
+        const containerColors = [
+            { hex: '#0e5f96', code: 'MAERSK' },    // Azul ultramar
+            { hex: '#b33927', code: 'K-LINE' },    // Rojo óxido
+            { hex: '#d9651e', code: 'HAPAG' },     // Naranja industrial
+            { hex: '#1e683b', code: 'EVERGREEN' }, // Verde oscuro
+            { hex: '#c99a18', code: 'LIEBHERR' }   // Amarillo de seguridad
+        ];
 
-        buildingsData.forEach((b, i) => {
-            dummyPos.set(b.posX, b.height / 2, b.posZ);
-            dummyScale.set(b.width, b.height, b.depth);
-            dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
-            instancedBldg.setMatrixAt(i, dummyMatrix);
+        const containerGeo = new THREE.BoxGeometry(6, 5, 14); // Dimensiones realistas 40ft
+        const cRoofMat = new THREE.MeshStandardMaterial({ color: 0x1f242c, roughness: 0.8 });
 
-            // Generar 12 aristas para el bounding box
-            const x0 = b.posX - b.width / 2, x1 = b.posX + b.width / 2;
-            const y0 = 0, y1 = b.height;
-            const z0 = b.posZ - b.depth / 2, z1 = b.posZ + b.depth / 2;
+        // Generar filas ordenadas de contenedores apilados en el patio logístico
+        const yardStartX = 25;
+        const yardStartZ = -30;
+        let cIdx = 0;
 
-            // Base
-            edgePositions.push(x0,y0,z0, x1,y0,z0,  x1,y0,z0, x1,y0,z1,  x1,y0,z1, x0,y0,z1,  x0,y0,z1, x0,y0,z0);
-            // Techo
-            edgePositions.push(x0,y1,z0, x1,y1,z0,  x1,y1,z0, x1,y1,z1,  x1,y1,z1, x0,y1,z1,  x0,y1,z1, x0,y1,z0);
-            // Columnas verticales
-            edgePositions.push(x0,y0,z0, x0,y1,z0,  x1,y0,z0, x1,y1,z0,  x1,y0,z1, x1,y1,z1,  x0,y0,z1, x0,y1,z1);
-        });
+        for (let row = 0; row < 3; row++) {
+            for (let bay = 0; bay < 4; bay++) {
+                const stackHeight = 1 + (bay % 3); // Pilas de 1 a 3 alturas
+                const cx = yardStartX + row * 16;
+                const cz = yardStartZ + bay * 18;
 
-        instancedBldg.instanceMatrix.needsUpdate = true;
-        cityGroup.add(instancedBldg);
+                for (let tier = 0; tier < stackHeight; tier++) {
+                    const cInfo = containerColors[(cIdx++) % containerColors.length];
+                    const cTex = createContainerTexture(cInfo.hex, cInfo.code);
+                    const cWallMat = new THREE.MeshStandardMaterial({
+                        map: cTex,
+                        roughness: 0.45,
+                        metalness: 0.3
+                    });
 
-        const mergedEdgesGeo = new THREE.BufferGeometry();
-        mergedEdgesGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3));
-        const mergedEdgeLines = new THREE.LineSegments(mergedEdgesGeo, edgeMat);
-        cityGroup.add(mergedEdgeLines);
+                    const crate = new THREE.Mesh(containerGeo, [
+                        cWallMat, cWallMat, cRoofMat, cRoofMat, cWallMat, cWallMat
+                    ]);
+                    const cy = 2.5 + tier * 5.05;
+                    crate.position.set(cx, cy, cz);
+                    crate.castShadow = true;
+                    crate.receiveShadow = true;
+                    scene.add(crate);
+                }
 
-        // Añadir Materiales (Contenedores)
-        const crateGeo = new THREE.BoxGeometry(6, 6, 12);
-        const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b949e });
-        for (let i = 0; i < 4; i++) {
-            let cx = 20 + i * 12;
-            let cz = -15 - i * 8;
-
-            let crate = new THREE.Mesh(crateGeo, crateMat);
-            crate.position.set(cx, 3, cz);
-            crate.castShadow = true;
-            crate.receiveShadow = true;
-            scene.add(crate);
-
-            // Colisión para contenedores
-            obstacles.push({
-                minX: cx - 3, maxX: cx + 3,
-                minZ: cz - 6, maxZ: cz + 6,
-                height: 6
-            });
+                // Guardar la pila completa de contenedores en la matriz de colisión
+                obstacles.push({
+                    minX: cx - 3.2, maxX: cx + 3.2,
+                    minZ: cz - 7.2, maxZ: cz + 7.2,
+                    height: stackHeight * 5.05
+                });
+            }
         }
 
         // FUNCIÓN ESCÁNER DE SUELO (Raycast Lógico)
         function getGroundHeightAt(x, z) {
-            let maxH = 0; // Por defecto el asfalto es 0
+            let maxH = 0;
             for (let obs of obstacles) {
-                // Si la coordenada está dentro de la base del edificio
                 if (x >= obs.minX && x <= obs.maxX && z >= obs.minZ && z <= obs.maxZ) {
                     if (obs.height > maxH) maxH = obs.height;
                 }
@@ -843,21 +1028,29 @@
                 else if (steerAngle < 0) steerAngle = Math.min(0, steerAngle + STEER_RETURN_RATE * dt);
             }
 
-            // 2. Acelerador, Frenos e Inercia Longitudinal
+            // 2. Acelerador, Frenos y Marcha Atrás Inmediata
+            const REVERSE_ACCEL = 18;     // Aceleración contundente marcha atrás
+            const FORWARD_ACCEL = 18;     // Aceleración hacia adelante
+            const BRAKE_FORCE = 32;       // Potencia de frenado rápido
+
             if (keys.ArrowUp) {
-                if (vehicleSpeed >= 0) {
-                    vehicleSpeed = Math.min(MAX_FORWARD_SPEED, vehicleSpeed + ACCEL_RATE * dt);
+                if (vehicleSpeed < -0.8) {
+                    // Frenar fuertemente la marcha atrás
+                    vehicleSpeed = Math.min(0, vehicleSpeed + BRAKE_FORCE * dt);
                 } else {
-                    vehicleSpeed = Math.min(0, vehicleSpeed + BRAKE_RATE * dt);
+                    // Acelerar hacia adelante
+                    vehicleSpeed = Math.min(MAX_FORWARD_SPEED, vehicleSpeed + FORWARD_ACCEL * dt);
                 }
             } else if (keys.ArrowDown) {
-                if (vehicleSpeed > 0) {
-                    vehicleSpeed = Math.max(0, vehicleSpeed - BRAKE_RATE * dt);
+                if (vehicleSpeed > 0.8) {
+                    // Frenar fuertemente la marcha adelante
+                    vehicleSpeed = Math.max(0, vehicleSpeed - BRAKE_FORCE * dt);
                 } else {
-                    vehicleSpeed = Math.max(-MAX_REVERSE_SPEED, vehicleSpeed - ACCEL_RATE * 0.7 * dt);
+                    // ¡MARCHA ATRÁS DIRECTA Y POTENTE!
+                    vehicleSpeed = Math.max(-14, vehicleSpeed - REVERSE_ACCEL * dt);
                 }
             } else {
-                // Rozamiento por inercia
+                // Desaceleración por fricción natural cuando no se presiona nada
                 if (vehicleSpeed > 0) vehicleSpeed = Math.max(0, vehicleSpeed - COAST_RATE * dt);
                 else if (vehicleSpeed < 0) vehicleSpeed = Math.min(0, vehicleSpeed + COAST_RATE * dt);
             }
