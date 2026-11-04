@@ -236,6 +236,154 @@
                 opacity: 0.5;
             }
         }
+    
+        /* Cockpit HUD Bar */
+        .cockpit-bar {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(13, 17, 23, 0.88);
+            backdrop-filter: blur(8px);
+            border: 1px solid #30363d;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(88, 166, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            z-index: 15;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .cockpit-speedo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 65px;
+        }
+
+        .cockpit-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.55rem;
+            font-weight: bold;
+            color: #58a6ff;
+            line-height: 1;
+        }
+
+        .cockpit-lbl {
+            font-size: 0.65rem;
+            color: #8b949e;
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
+
+        .cockpit-wheel-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cockpit-wheel-svg-wrap {
+            width: 52px;
+            height: 52px;
+        }
+
+        .cockpit-wheel-svg {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.05s linear;
+        }
+
+        .cockpit-steer-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: #e0e0e0;
+        }
+
+        .cockpit-transmission {
+            display: flex;
+            gap: 6px;
+            background: #161b22;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #21262d;
+        }
+
+        .gear-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #484f58;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .gear-badge.active.gear-d {
+            background: rgba(46, 160, 67, 0.25);
+            color: #3fb950;
+            box-shadow: 0 0 8px rgba(63, 185, 80, 0.4);
+        }
+
+        .gear-badge.active.gear-n {
+            background: rgba(210, 153, 34, 0.25);
+            color: #d29922;
+            box-shadow: 0 0 8px rgba(210, 153, 34, 0.4);
+        }
+
+        .gear-badge.active.gear-r {
+            background: rgba(248, 81, 73, 0.25);
+            color: #f85149;
+            box-shadow: 0 0 8px rgba(248, 81, 73, 0.4);
+        }
+
+        .cockpit-pedals {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pedal-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .pedal-bar-bg {
+            width: 10px;
+            height: 38px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+        }
+
+        .pedal-bar-fill {
+            width: 100%;
+            height: 0%;
+            transition: height 0.08s ease;
+        }
+
+        .pedal-bar-fill.gas {
+            background: #3fb950;
+            box-shadow: 0 0 6px rgba(63, 185, 80, 0.6);
+        }
+
+        .pedal-bar-fill.brake {
+            background: #f85149;
+            box-shadow: 0 0 6px rgba(248, 81, 73, 0.6);
+        }
+
+        .pedal-txt {
+            font-size: 0.6rem;
+            color: #8b949e;
+        }
     </style>
 </head>
 
@@ -272,8 +420,50 @@
 
         <div class="camera-view">
             <div class="cam-overlay">CAM_01 // LIEBHERR LTM 1110 // TELEMETRÍA ONLINE<br>
-                <span id="fps">FPS: 60</span> | VEL: <span id="hudSpeed" style="color:#58a6ff;font-weight:bold;">0 KM/H</span> | MARCHA: <span id="hudGear" style="color:#3fb950;font-weight:bold;">N</span> | VOLANTE: <span id="hudSteer">0°</span>
+                <span id="fps">FPS: 60</span> | MOTOR DIÉSEL OK | MATRIZ AABB ONLINE
             </div>
+
+            <!-- COCKPIT INFERIOR DE CONDUCCIÓN -->
+            <div class="cockpit-bar">
+                <div class="cockpit-speedo">
+                    <div class="cockpit-num" id="cockpitSpeed">0</div>
+                    <div class="cockpit-lbl">KM/H</div>
+                </div>
+
+                <div class="cockpit-wheel-card">
+                    <div class="cockpit-wheel-svg-wrap">
+                        <svg id="cockpitWheel" viewBox="0 0 100 100" class="cockpit-wheel-svg">
+                            <circle cx="50" cy="50" r="44" stroke="#58a6ff" stroke-width="6" fill="#0d1117" opacity="0.9" />
+                            <circle cx="50" cy="50" r="41" stroke="#21262d" stroke-width="2" fill="none" />
+                            <rect x="47" y="6" width="6" height="8" fill="#f85149" rx="2" />
+                            <line x1="50" y1="50" x2="8" y2="50" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
+                            <line x1="50" y1="50" x2="92" y2="50" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
+                            <line x1="50" y1="50" x2="50" y2="92" stroke="#58a6ff" stroke-width="5" stroke-linecap="round" />
+                            <circle cx="50" cy="50" r="14" fill="#161b22" stroke="#30363d" stroke-width="2" />
+                            <polygon points="50,42 57,46 57,54 50,58 43,54 43,46" fill="#f6c000" />
+                        </svg>
+                    </div>
+                    <div class="cockpit-steer-val" id="cockpitSteerAngle">0°</div>
+                </div>
+
+                <div class="cockpit-transmission">
+                    <div class="gear-badge" id="badgeR">R</div>
+                    <div class="gear-badge active gear-n" id="badgeN">N</div>
+                    <div class="gear-badge" id="badgeD">D</div>
+                </div>
+
+                <div class="cockpit-pedals">
+                    <div class="pedal-wrap">
+                        <div class="pedal-bar-bg"><div class="pedal-bar-fill gas" id="pedalGas"></div></div>
+                        <span class="pedal-txt">GAS</span>
+                    </div>
+                    <div class="pedal-wrap">
+                        <div class="pedal-bar-bg"><div class="pedal-bar-fill brake" id="pedalBrake"></div></div>
+                        <span class="pedal-txt">BRK</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="help-overlay">Flechas: Conducir (Acelerar / Freno / Marcha Atrás / Dirección) | Q/A: Giro Cabina | W/S: Extender Pluma | E/D: Ángulo | Z/X: Cabrestante</div>
             <div id="canvas3DContainer"></div>
         </div>
@@ -558,24 +748,42 @@
         const bldgTex1 = createBuildingTexture('rgba(88, 166, 255, 0.8)');
         const bldgTex2 = createBuildingTexture('rgba(246, 224, 94, 0.75)');
 
+        // Edificios con vidrio arquitectónico translúcido para mantener visibilidad de la grúa desde cualquier ángulo
         const bldgMat1 = new THREE.MeshStandardMaterial({
             map: bldgTex1,
-            roughness: 0.4,
-            metalness: 0.35
+            transparent: true,
+            opacity: 0.35,
+            depthWrite: false,
+            roughness: 0.2,
+            metalness: 0.5
         });
         const bldgMat2 = new THREE.MeshStandardMaterial({
             map: bldgTex2,
-            roughness: 0.5,
-            metalness: 0.25
+            transparent: true,
+            opacity: 0.35,
+            depthWrite: false,
+            roughness: 0.2,
+            metalness: 0.5
         });
         const roofMat = new THREE.MeshStandardMaterial({
-            color: 0x1a212b,
-            roughness: 0.7
+            color: 0x161b22,
+            transparent: true,
+            opacity: 0.45,
+            depthWrite: false,
+            roughness: 0.6
         });
         const hvacMat = new THREE.MeshStandardMaterial({
             color: 0x30363d,
+            transparent: true,
+            opacity: 0.45,
+            depthWrite: false,
             roughness: 0.5,
-            metalness: 0.6
+            metalness: 0.5
+        });
+        const bldgEdgeMat = new THREE.LineBasicMaterial({
+            color: 0x58a6ff,
+            transparent: true,
+            opacity: 0.4
         });
         const helipadMat = new THREE.MeshStandardMaterial({
             map: createHelipadTexture(),
@@ -614,9 +822,13 @@
                     bMat, bMat, roofMat, roofMat, bMat, bMat
                 ]);
                 bldgMesh.position.set(posX, height / 2, posZ);
-                bldgMesh.castShadow = true;
                 bldgMesh.receiveShadow = true;
                 cityGroup.add(bldgMesh);
+
+                // Aristas luminosas para definir el volumen arquitectónico
+                const bEdges = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), bldgEdgeMat);
+                bEdges.position.copy(bldgMesh.position);
+                cityGroup.add(bEdges);
 
                 // Casetón HVAC / Maquinaria en el tejado
                 const hvacW = width * 0.45;
@@ -931,7 +1143,7 @@
             return false;
         }
 
-        let loadYPos = 10;
+        let cableLength = 12; // Longitud física desenrollada del cable en metros
         let lastTime = performance.now();
         let frameCount = 0;
         let loadDirection = -1;
@@ -1092,15 +1304,46 @@
                 controls.target.set(craneGroup.position.x, 15, craneGroup.position.z);
             }
 
-            // 5. Actualizar telemetría de conducción en HUD
+            // 5. Actualizar Cockpit HUD de conducción
             const speedKmh = Math.round(Math.abs(vehicleSpeed) * 3.6);
-            document.getElementById('hudSpeed').innerText = `${speedKmh} KM/H`;
-            const gear = vehicleSpeed > 0.2 ? 'D' : (vehicleSpeed < -0.2 ? 'R' : 'N');
-            const elGear = document.getElementById('hudGear');
-            elGear.innerText = gear;
-            elGear.style.color = gear === 'D' ? '#3fb950' : (gear === 'R' ? '#f85149' : '#d29922');
             const steerDeg = Math.round(steerAngle * (180 / Math.PI));
-            document.getElementById('hudSteer').innerText = `${steerDeg > 0 ? '+' : ''}${steerDeg}°`;
+
+            const elCockpitSpeed = document.getElementById('cockpitSpeed');
+            if (elCockpitSpeed) elCockpitSpeed.innerText = speedKmh;
+
+            const elSteerAngle = document.getElementById('cockpitSteerAngle');
+            if (elSteerAngle) elSteerAngle.innerText = `${steerDeg > 0 ? '+' : ''}${steerDeg}°`;
+
+            const elWheel = document.getElementById('cockpitWheel');
+            if (elWheel) elWheel.style.transform = `rotate(${steerDeg * 2.2}deg)`;
+
+            const bR = document.getElementById('badgeR');
+            const bN = document.getElementById('badgeN');
+            const bD = document.getElementById('badgeD');
+            if (bR && bN && bD) {
+                bR.className = 'gear-badge';
+                bN.className = 'gear-badge';
+                bD.className = 'gear-badge';
+                if (vehicleSpeed > 0.3) {
+                    bD.className = 'gear-badge active gear-d';
+                } else if (vehicleSpeed < -0.3) {
+                    bR.className = 'gear-badge active gear-r';
+                } else {
+                    bN.className = 'gear-badge active gear-n';
+                }
+            }
+
+            const pGas = document.getElementById('pedalGas');
+            const pBrake = document.getElementById('pedalBrake');
+            if (pGas && pBrake) {
+                if (keys.ArrowUp && vehicleSpeed >= -0.5) pGas.style.height = '100%';
+                else if (keys.ArrowDown && vehicleSpeed < -0.3) pGas.style.height = '100%'; // Reversa acelerando
+                else pGas.style.height = (Math.abs(vehicleSpeed) > 1 ? '35%' : '0%');
+
+                if (keys.ArrowDown && vehicleSpeed >= 0.3) pBrake.style.height = '100%';
+                else if (keys.ArrowUp && vehicleSpeed < -0.5) pBrake.style.height = '100%';
+                else pBrake.style.height = '0%';
+            }
 
             // CINEMÁTICA Y FÍSICA
             if (craneLoaded) {
@@ -1163,27 +1406,38 @@
             const size = 1.5 + (massTon / 50) * 2.5;
             loadMesh.scale.set(size, size, size);
 
-            // === FÍSICA DE COLISIONES CON LA CIUDAD ===
+            // === FÍSICA Y CINEMÁTICA REAL DEL CABRESTANTE ===
+            // 1. Altura del suelo u obstáculo directamente debajo de la punta
             const groundH = getGroundHeightAt(tipWorld.x, tipWorld.z);
-            const minimumDropHeight = groundH + size;
+            const minimumLoadY = groundH + size * 0.5;
 
-            // Control manual del cabrestante (teclas Z / X)
+            // 2. Distancia entre carga y gancho
+            const hookOffsetFromLoad = size * 0.5 + 2.0;
+
+            // 3. Límites físicos de la longitud de cable devanado (cableLength)
+            const minCableLength = hookOffsetFromLoad + 1.2; // Polea a tope contra la punta
+            const maxCableLength = Math.max(minCableLength, tipWorld.y - minimumLoadY);
+
+            // 4. Control manual del cabrestante (teclas Z / X):
+            // 'Z' enrolla cable en el tambor (sube la carga)
             if (keys['z']) {
-                loadYPos += speed * dt * 8; // Sube
+                cableLength -= speed * dt * 8;
             }
+            // 'X' desenrolla cable del tambor (baja la carga)
             if (keys['x']) {
-                loadYPos -= speed * dt * 8; // Baja
+                cableLength += speed * dt * 8;
             }
 
-            // Límites dinámicos obligatorios (gancho + carga bajo la punta)
-            const hookOffsetFromLoad = size * 0.5 + 2.2;
-            const maxAllowedLoadY = tipWorld.y - hookOffsetFromLoad - 1.0;
-            if (loadYPos < minimumDropHeight) loadYPos = minimumDropHeight;
-            if (loadYPos > maxAllowedLoadY) loadYPos = maxAllowedLoadY;
+            // Aplicar límites dinámicos (no atravesar suelo ni golpear la punta)
+            if (cableLength < minCableLength) cableLength = minCableLength;
+            if (cableLength > maxCableLength) cableLength = maxCableLength;
 
+            // 5. La posición de la carga es SOLIDARIA a la pluma:
+            // Al mover o extender la pluma, la carga sube/baja con ella automáticamente
+            const loadYPos = tipWorld.y - cableLength;
             loadMesh.position.set(tipWorld.x, loadYPos, tipWorld.z);
 
-            // Posicionar el aparejo de polea/gancho directamente arriba de la carga
+            // Posicionar aparejo de gancho directamente sobre la carga
             const hookYPos = loadYPos + hookOffsetFromLoad;
             hookGroup.position.set(tipWorld.x, hookYPos, tipWorld.z);
             hookGroup.rotation.y = craneGroup.rotation.y;
