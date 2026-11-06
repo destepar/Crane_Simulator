@@ -368,7 +368,7 @@ export class Environment {
         const paletMat = new THREE.MeshStandardMaterial({ color: 0x6e5033, roughness: 0.9 });
         const blockMat = new THREE.MeshStandardMaterial({ color: 0x944933, roughness: 0.8 }); // Ladrillos cara-vista
 
-        [-bL => bx - 8, bx + 6].forEach((mx, idx) => {
+        [bx - 8, bx + 6].forEach((mx, idx) => {
             const palet = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 2.0), paletMat);
             palet.position.set(mx, topY + 0.15, bz + (idx === 0 ? 5 : -5));
             palet.castShadow = true;
