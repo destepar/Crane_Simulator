@@ -6,5 +6,5 @@ echo   Iniciando Crane Simulator (Liebherr LTM 1110)...
 echo ========================================================
 echo.
 
-start http://localhost:8000/
-python -m http.server 8000
+start http://localhost:8080/
+python -m http.server 8080
