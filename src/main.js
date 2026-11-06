@@ -187,7 +187,15 @@ class SimulatorApp {
     }
 }
 
-// Iniciar aplicación cuando el DOM esté listo
-window.addEventListener('DOMContentLoaded', () => {
-    window.simulatorApp = new SimulatorApp();
-});
+// Iniciar aplicación de forma segura (tanto si el DOM ya cargó como si está cargando)
+function initSimulator() {
+    if (!window.simulatorApp) {
+        window.simulatorApp = new SimulatorApp();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSimulator);
+} else {
+    initSimulator();
+}
