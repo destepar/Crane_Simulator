@@ -16,15 +16,15 @@ export class SceneManager {
 
     _initScene() {
         this.scene = new THREE.Scene();
-        this.skyColor = new THREE.Color(0x8ec2f2);
+        this.skyColor = new THREE.Color(0xd6e5f7);
         this.scene.background = this.skyColor;
-        this.scene.fog = new THREE.Fog(0xbad7f5, 180, 950);
+        this.scene.fog = new THREE.Fog(0xd0e0f3, 40, 280);
     }
 
     _initCamera() {
         const aspect = this.container.clientWidth / this.container.clientHeight;
-        this.camera = new THREE.PerspectiveCamera(48, aspect, 0.1, 2000);
-        this.camera.position.set(-85, 55, 95);
+        this.camera = new THREE.PerspectiveCamera(48, aspect, 0.1, 1000);
+        this.camera.position.set(-24, 12, 28);
     }
 
     _initRenderer() {
@@ -34,13 +34,13 @@ export class SceneManager {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.10;
+        this.renderer.toneMappingExposure = 1.05;
         this.container.appendChild(this.renderer.domElement);
     }
 
     _initControls() {
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.target.set(0, 12, 0);
+        this.controls.target.set(0, 3.0, 0);
         this.controls.maxPolarAngle = Math.PI / 2 - 0.02;
         this.controls.update();
     }
@@ -81,18 +81,18 @@ export class SceneManager {
         this.scene.add(this.hemiLight);
 
         this.dirLight = new THREE.DirectionalLight(0xfff8ee, 2.65);
-        this.dirLight.position.set(140, 240, 100);
+        this.dirLight.position.set(60, 90, 45);
         this.dirLight.castShadow = true;
         this.dirLight.shadow.mapSize.width = 4096;
         this.dirLight.shadow.mapSize.height = 4096;
-        this.dirLight.shadow.camera.near = 10;
-        this.dirLight.shadow.camera.far = 600;
-        this.dirLight.shadow.camera.left = -170;
-        this.dirLight.shadow.camera.right = 170;
-        this.dirLight.shadow.camera.top = 170;
-        this.dirLight.shadow.camera.bottom = -170;
-        this.dirLight.shadow.bias = -0.0003;
-        this.dirLight.shadow.normalBias = 0.038;
+        this.dirLight.shadow.camera.near = 5;
+        this.dirLight.shadow.camera.far = 250;
+        this.dirLight.shadow.camera.left = -50;
+        this.dirLight.shadow.camera.right = 50;
+        this.dirLight.shadow.camera.top = 50;
+        this.dirLight.shadow.camera.bottom = -50;
+        this.dirLight.shadow.bias = -0.0001;
+        this.dirLight.shadow.normalBias = 0.02;
         this.scene.add(this.dirLight);
 
         this.fillLight = new THREE.DirectionalLight(0x9bc2f0, 0.75);

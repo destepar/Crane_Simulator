@@ -15,6 +15,6 @@ export const VEHICLE_CONFIG = {
     MAX_STEER_RAD: 0.45,     // ~26 grados de giro máximo
     STEER_RATE: 1.7,         // Velocidad de giro de volante
     STEER_RETURN_RATE: 2.4,  // Retorno automático del volante al centro
-    WHEELBASE: 15.0,         // Batalla efectiva entre ejes (m)
-    COLLISION_SPHERE_RADIUS: 2.4
+    WHEELBASE: 7.8,          // Batalla efectiva real entre ejes extremos (m)
+    COLLISION_SPHERE_RADIUS: 1.5
 };

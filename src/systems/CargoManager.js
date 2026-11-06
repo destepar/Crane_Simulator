@@ -321,7 +321,7 @@ export class CargoManager {
                 y: rooftopTarget.y + 0.1,
                 z: rooftopTarget.z,
                 radius: 3.8,
-                name: 'AZOTEA RASCACIELOS (HELIPUERTO)'
+                name: 'CUBIERTA DE NAVE LOGÍSTICA (11.2 M)'
             };
         }
     }

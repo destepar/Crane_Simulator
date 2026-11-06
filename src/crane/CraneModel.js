@@ -25,7 +25,7 @@ export class CraneModel {
             'Assets3D/LTM 1110 LIEBHERR.gltf',
             (gltf) => {
                 const model = gltf.scene;
-                model.scale.set(4, 4, 4);
+                model.scale.set(1, 1, 1);
                 this.craneGroup.add(model);
 
                 model.traverse((node) => {
@@ -108,7 +108,7 @@ export class CraneModel {
                 });
 
                 this.rigArms.sort((a, b) => a.name.localeCompare(b.name));
-                this.craneGroup.position.y = 1;
+                this.craneGroup.position.y = 0;
                 this.isLoaded = true;
 
                 if (onLoad) onLoad(this);

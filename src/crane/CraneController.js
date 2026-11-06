@@ -17,9 +17,9 @@ export class CraneController {
         const sphereRadius = VEHICLE_CONFIG.COLLISION_SPHERE_RADIUS;
 
         const testPoints = [
-            { x: cx + forwardX * 4.8, z: cz + forwardZ * 4.8, part: 'FRONT' },
+            { x: cx + forwardX * 5.0, z: cz + forwardZ * 5.0, part: 'FRONT' },
             { x: cx, z: cz, part: 'CENTER' },
-            { x: cx - forwardX * 4.8, z: cz - forwardZ * 4.8, part: 'REAR' }
+            { x: cx - forwardX * 5.0, z: cz - forwardZ * 5.0, part: 'REAR' }
         ];
 
         for (const obs of this.obstacles) {

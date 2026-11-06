@@ -4,33 +4,37 @@ export class Environment {
     constructor(scene) {
         this.scene = scene;
         this.obstacles = [];
-        this.rooftopTarget = { x: -80, y: 70, z: -80, width: 28, depth: 28 };
-        this.highestBuildingMesh = null;
+        // Zona objetivo de azotea para izado HVAC (Techo de la nave logística)
+        this.rooftopTarget = { x: 34, y: 11.2, z: -20, width: 22, depth: 16 };
+        this.warehouseMesh = null;
 
         this._buildGround();
-        this._buildCity();
-        this._buildContainerYard();
+        this._buildLogisticsWarehouse();
+        this._buildContainerTerminal();
+        this._buildLightingTowers();
+        this._buildPerimeterSecurity();
     }
 
-    _createIndustrialGroundTexture() {
+    // --- 1. TEXTURA PBR DE PAVIMENTO PORTUARIO / LOGÍSTICO PESADO ---
+    _createLogisticsGroundTexture() {
         const c = document.createElement('canvas');
         c.width = 2048; c.height = 2048;
         const ctx = c.getContext('2d');
 
-        // 1. Asfalto / Hormigón gris industrial base de alta densidad
-        ctx.fillStyle = '#252930';
+        // 1. Asfalto/hormigón gris industrial base
+        ctx.fillStyle = '#2c313a';
         ctx.fillRect(0, 0, 2048, 2048);
 
-        // 2. Micrograno de árido y textura de desgaste
-        for (let i = 0; i < 18000; i++) {
+        // 2. Micro-grano mineral y desgaste de rodadura pesada
+        for (let i = 0; i < 22000; i++) {
             const rx = Math.random() * 2048;
             const ry = Math.random() * 2048;
-            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.07)';
+            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.08)';
             ctx.fillRect(rx, ry, 2, 2);
         }
 
-        // 3. Juntas de losa de hormigón (losas de 8x8 metros) con brea oscura
-        ctx.strokeStyle = '#15181e';
+        // 3. Juntas de dilatación de losas de hormigón (selladas con brea bituminosa)
+        ctx.strokeStyle = '#1a1d23';
         ctx.lineWidth = 4;
         for (let x = 0; x <= 2048; x += 256) {
             ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 2048); ctx.stroke();
@@ -39,368 +43,293 @@ export class Environment {
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(2048, y); ctx.stroke();
         }
 
-        // 4. Señalización vial industrial: Carriles y marcas de tránsito de maquinaria pesada
-        ctx.strokeStyle = 'rgba(240, 243, 248, 0.75)';
+        // 4. Franjas de circulación y marcas viales de terminal (Tráfico pesado)
+        ctx.strokeStyle = '#e0a800'; // Amarillo tráfico
         ctx.lineWidth = 8;
-        ctx.setLineDash([40, 30]);
-        // Calles principales de obra
-        ctx.beginPath(); ctx.moveTo(1024, 0); ctx.lineTo(1024, 2048); ctx.stroke();
+        ctx.setLineDash([30, 20]);
+        // Carril principal longitudinal
         ctx.beginPath(); ctx.moveTo(0, 1024); ctx.lineTo(2048, 1024); ctx.stroke();
-        ctx.setLineDash([]); // Reset
-
-        // 5. Bahía de estacionamiento de grúa (líneas sólidas de delimitación)
-        ctx.strokeStyle = '#e6a100';
-        ctx.lineWidth = 10;
-        ctx.strokeRect(896, 896, 256, 256);
-
-        // 6. Franjas de advertencia de seguridad (Safety Hazard Stripes amarillo/negro)
-        const drawHazardStripes = (x1, y1, w, h) => {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(x1, y1, w, h);
-            ctx.clip();
-            ctx.fillStyle = '#e6a100';
-            ctx.fillRect(x1, y1, w, h);
-            ctx.fillStyle = '#181b20';
-            for (let i = -h; i < w + h; i += 32) {
-                ctx.beginPath();
-                ctx.moveTo(x1 + i, y1);
-                ctx.lineTo(x1 + i + 16, y1);
-                ctx.lineTo(x1 + i + 16 - h, y1 + h);
-                ctx.lineTo(x1 + i - h, y1 + h);
-                ctx.closePath();
-                ctx.fill();
-            }
-            ctx.restore();
-        };
-
-        drawHazardStripes(128, 128, 400, 24);
-        drawHazardStripes(128, 528, 400, 24);
-        drawHazardStripes(1400, 256, 500, 28);
-        drawHazardStripes(1400, 800, 500, 28);
-
-        // 7. Flechas de circulación en el pavimento
-        ctx.fillStyle = 'rgba(240, 245, 255, 0.65)';
-        const drawArrow = (ax, ay, rot) => {
-            ctx.save();
-            ctx.translate(ax, ay);
-            ctx.rotate(rot);
-            ctx.beginPath();
-            ctx.moveTo(0, -35);
-            ctx.lineTo(25, 0);
-            ctx.lineTo(10, 0);
-            ctx.lineTo(10, 35);
-            ctx.lineTo(-10, 35);
-            ctx.lineTo(-10, 0);
-            ctx.lineTo(-25, 0);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-        };
-
-        drawArrow(960, 600, 0);
-        drawArrow(1088, 1400, Math.PI);
-        drawArrow(600, 1088, Math.PI / 2);
-        drawArrow(1400, 960, -Math.PI / 2);
+        // Carril transversal
+        ctx.beginPath(); ctx.moveTo(1024, 0); ctx.lineTo(1024, 2048); ctx.stroke();
+        ctx.setLineDash([]);
 
         const tex = new THREE.CanvasTexture(c);
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(4, 4);
+        tex.repeat.set(8, 8);
         tex.anisotropy = 8;
         return tex;
     }
 
     _buildGround() {
-        const groundTex = this._createIndustrialGroundTexture();
-        const planeGeo = new THREE.PlaneGeometry(800, 800);
+        const groundTex = this._createLogisticsGroundTexture();
+        const planeGeo = new THREE.PlaneGeometry(500, 500);
         const planeMat = new THREE.MeshStandardMaterial({
             map: groundTex,
             roughness: 0.82,
-            metalness: 0.15
+            metalness: 0.18
         });
         const plane = new THREE.Mesh(planeGeo, planeMat);
         plane.rotation.x = -Math.PI / 2;
         plane.receiveShadow = true;
         this.scene.add(plane);
+
+        // Placas de acero de reparto de carga para estabilizadores de la grúa (1:1 real: 2.8m x 1.8m)
+        const plateGeo = new THREE.BoxGeometry(2.8, 0.06, 1.8);
+        const plateMat = new THREE.MeshStandardMaterial({ color: 0x22262c, roughness: 0.35, metalness: 0.85 });
+        [-4.2, 4.2].forEach(px => {
+            [-4.8, 4.8].forEach(pz => {
+                const plate = new THREE.Mesh(plateGeo, plateMat);
+                plate.position.set(px, 0.03, pz);
+                plate.receiveShadow = true;
+                this.scene.add(plate);
+            });
+        });
     }
 
-    _createFacadeTexture(variant = 0) {
-        const c = document.createElement('canvas');
-        c.width = 512; c.height = 1024;
-        const ctx = c.getContext('2d');
+    // --- 2. NAVE INDUSTRIAL / ALMACÉN LOGÍSTICO PORTUARIO (1:1 REAL) ---
+    _buildLogisticsWarehouse() {
+        const warehouseGroup = new THREE.Group();
+        this.scene.add(warehouseGroup);
 
-        // Color de hormigón / acero arquitectónico
-        const baseColors = ['#1a202c', '#242b35', '#2c3542'];
-        ctx.fillStyle = baseColors[variant % baseColors.length];
-        ctx.fillRect(0, 0, 512, 1024);
+        const wx = 34;
+        const wz = -20;
+        const wLength = 42; // 42 metros de largo
+        const wWidth = 24;  // 24 metros de ancho
+        const wHeight = 11; // 11 metros de altura libre
 
-        // Rejilla de muros cortina con cristales reflectantes
-        const cols = 8;
-        const rows = 24;
-        const padX = 10;
-        const padY = 8;
-        const cellW = (512 - (cols + 1) * padX) / cols;
-        const cellH = (1024 - (rows + 1) * padY) / rows;
+        // Material panel sándwich gris grafito oscuro
+        const wallMat = new THREE.MeshStandardMaterial({
+            color: 0x38414e,
+            roughness: 0.65,
+            metalness: 0.35
+        });
 
-        for (let r = 0; r < rows; r++) {
-            for (let col = 0; col < cols; col++) {
-                const x = padX + col * (cellW + padX);
-                const y = padY + r * (cellH + padY);
+        // Estructura principal
+        const bodyGeo = new THREE.BoxGeometry(wLength, wHeight, wWidth);
+        const body = new THREE.Mesh(bodyGeo, wallMat);
+        body.position.set(wx, wHeight * 0.5, wz);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        warehouseGroup.add(body);
+        this.warehouseMesh = body;
 
-                // Cristal tintado con reflejos de cielo diurno
-                const grad = ctx.createLinearGradient(x, y, x, y + cellH);
-                grad.addColorStop(0, '#506e8e');
-                grad.addColorStop(0.35, '#2b3f54');
-                grad.addColorStop(1, '#131e2b');
-                ctx.fillStyle = grad;
-                ctx.fillRect(x, y, cellW, cellH);
+        // Obstáculo de colisión vehicular
+        this.obstacles.push({
+            minX: wx - wLength * 0.5 - 1.5,
+            maxX: wx + wLength * 0.5 + 1.5,
+            minZ: wz - wWidth * 0.5 - 1.5,
+            maxZ: wz + wWidth * 0.5 + 1.5,
+            height: wHeight
+        });
 
-                // Marco de ventana
-                ctx.strokeStyle = '#0d131a';
-                ctx.lineWidth = 1.5;
-                ctx.strokeRect(x, y, cellW, cellH);
-            }
+        // Vigas y pilares perimetrales metálicos (H-Beams)
+        const beamMat = new THREE.MeshStandardMaterial({ color: 0x1f242b, roughness: 0.5, metalness: 0.8 });
+        const colGeo = new THREE.BoxGeometry(0.8, wHeight + 0.5, 0.8);
+        for (let x = -wLength * 0.5; x <= wLength * 0.5; x += 10.5) {
+            [-wWidth * 0.5, wWidth * 0.5].forEach(z => {
+                const col = new THREE.Mesh(colGeo, beamMat);
+                col.position.set(wx + x, wHeight * 0.5, wz + z);
+                col.castShadow = true;
+                warehouseGroup.add(col);
+            });
         }
 
-        const tex = new THREE.CanvasTexture(c);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(1, 1);
-        return tex;
-    }
+        // Cornisa y remate superior de cubierta
+        const fasciaGeo = new THREE.BoxGeometry(wLength + 0.8, 0.6, wWidth + 0.8);
+        const fasciaMat = new THREE.MeshStandardMaterial({ color: 0x005596, roughness: 0.4, metalness: 0.5 }); // Franja azul corporativa
+        const fascia = new THREE.Mesh(fasciaGeo, fasciaMat);
+        fascia.position.set(wx, wHeight + 0.3, wz);
+        warehouseGroup.add(fascia);
 
-    _createHelipadTexture() {
-        const c = document.createElement('canvas');
-        c.width = 512; c.height = 512;
-        const ctx = c.getContext('2d');
+        // Puertas seccionales de muelle de carga con franjas de peligro (Frontal mirando al patio)
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x272c35, roughness: 0.5, metalness: 0.6 });
+        const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0xd68000, roughness: 0.4, metalness: 0.3 }); // Marco amarillo seguridad
 
-        // Base de hormigón oscuro de azotea
-        ctx.fillStyle = '#1e242d';
-        ctx.fillRect(0, 0, 512, 512);
+        [-12, -4, 4, 12].forEach(dx => {
+            // Marco
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(5.2, 5.2, 0.4), doorFrameMat);
+            frame.position.set(wx + dx, 2.6, wz + wWidth * 0.5 + 0.2);
+            warehouseGroup.add(frame);
 
-        // Círculo exterior amarillo reflectante
-        ctx.strokeStyle = '#e6a100';
-        ctx.lineWidth = 16;
-        ctx.beginPath();
-        ctx.arc(256, 256, 220, 0, Math.PI * 2);
-        ctx.stroke();
+            // Hoja de persiana
+            const door = new THREE.Mesh(new THREE.BoxGeometry(4.8, 4.8, 0.3), doorMat);
+            door.position.set(wx + dx, 2.5, wz + wWidth * 0.5 + 0.25);
+            door.castShadow = true;
+            warehouseGroup.add(door);
 
-        // Círculo interior blanco
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 8;
-        ctx.beginPath();
-        ctx.arc(256, 256, 175, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Letra 'H' de helipuerto en blanco con sombra reflectante
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 190px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('H', 256, 256);
-
-        // Marcadores de esquina de advertencia
-        ctx.fillStyle = '#e6a100';
-        ctx.fillRect(16, 16, 40, 40);
-        ctx.fillRect(456, 16, 40, 40);
-        ctx.fillRect(16, 456, 40, 40);
-        ctx.fillRect(456, 456, 40, 40);
-
-        return new THREE.CanvasTexture(c);
-    }
-
-    _buildCity() {
-        const cityGroup = new THREE.Group();
-        this.scene.add(cityGroup);
-
-        const facadeTex1 = this._createFacadeTexture(0);
-        const facadeTex2 = this._createFacadeTexture(1);
-        const helipadTex = this._createHelipadTexture();
-
-        const bldgMat1 = new THREE.MeshStandardMaterial({
-            map: facadeTex1,
-            roughness: 0.35,
-            metalness: 0.55
-        });
-        const bldgMat2 = new THREE.MeshStandardMaterial({
-            map: facadeTex2,
-            roughness: 0.38,
-            metalness: 0.60
+            // Muelle de goma de protección para camiones
+            const bumperGeo = new THREE.BoxGeometry(0.5, 1.2, 0.4);
+            const bumperMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+            [-2.2, 2.2].forEach(bx => {
+                const bumper = new THREE.Mesh(bumperGeo, bumperMat);
+                bumper.position.set(wx + dx + bx, 0.6, wz + wWidth * 0.5 + 0.5);
+                warehouseGroup.add(bumper);
+            });
         });
 
-        const roofMat = new THREE.MeshStandardMaterial({
-            color: 0x212832,
-            roughness: 0.85,
-            metalness: 0.20
-        });
+        // Plataforma de mantenimiento y maquinaria en cubierta (Rooftop HVAC Target)
+        const roofPlatformGeo = new THREE.BoxGeometry(16, 0.3, 10);
+        const roofPlatformMat = new THREE.MeshStandardMaterial({ color: 0x4a525d, roughness: 0.7, metalness: 0.4 });
+        const roofPlat = new THREE.Mesh(roofPlatformGeo, roofPlatformMat);
+        roofPlat.position.set(wx, wHeight + 0.15, wz);
+        roofPlat.receiveShadow = true;
+        warehouseGroup.add(roofPlat);
 
-        const helipadMat = new THREE.MeshStandardMaterial({
-            map: helipadTex,
-            roughness: 0.70,
-            metalness: 0.25
-        });
-
-        const citySize = 350;
-        const safeZone = 75;
-        let seed = 42;
-        let maxTowerH = 0;
-        let highestBldgMesh = null;
-
-        const seededRandom = () => {
-            seed = (seed * 9301 + 49297) % 233280;
-            return seed / 233280;
-        };
-
-        for (let x = -citySize; x <= citySize; x += 65) {
-            for (let z = -citySize; z <= citySize; z += 65) {
-                if (Math.abs(x) < safeZone && Math.abs(z) < safeZone) continue;
-                if (seededRandom() > 0.55) continue;
-
-                const offsetX = (seededRandom() - 0.5) * 12;
-                const offsetZ = (seededRandom() - 0.5) * 12;
-
-                const height = 35 + seededRandom() * 95;
-                const width = 20 + seededRandom() * 16;
-                const depth = 20 + seededRandom() * 16;
-
-                const posX = x + offsetX;
-                const posZ = z + offsetZ;
-
-                const isTower = (height > maxTowerH && Math.abs(posX) < 130 && Math.abs(posZ) < 130);
-                if (isTower) {
-                    maxTowerH = height;
-                    this.rooftopTarget = { x: posX, y: height, z: posZ, width, depth };
-                }
-
-                const bMat = (seededRandom() > 0.5) ? bldgMat1 : bldgMat2;
-                const topMat = isTower ? helipadMat : roofMat;
-
-                const bGeo = new THREE.BoxGeometry(width, height, depth);
-                // Cara superior con techo/helipuerto
-                const bldgMesh = new THREE.Mesh(bGeo, [
-                    bMat, bMat, topMat, roofMat, bMat, bMat
-                ]);
-                bldgMesh.position.set(posX, height / 2, posZ);
-                bldgMesh.castShadow = true;
-                bldgMesh.receiveShadow = true;
-                cityGroup.add(bldgMesh);
-
-                if (isTower) highestBldgMesh = bldgMesh;
-
-                // Casetones de azotea (HVAC, caseta de ascensores) para realismo arquitectónico
-                const hvacGeo = new THREE.BoxGeometry(width * 0.45, 4.5, depth * 0.45);
-                const hvacMat = new THREE.MeshStandardMaterial({ color: 0x3a424e, roughness: 0.6 });
-                const hvacMesh = new THREE.Mesh(hvacGeo, hvacMat);
-                hvacMesh.position.set(posX + (isTower ? width * 0.25 : 0), height + 2.25, posZ + (isTower ? depth * 0.25 : 0));
-                hvacMesh.castShadow = true;
-                hvacMesh.receiveShadow = true;
-                cityGroup.add(hvacMesh);
-
-                this.obstacles.push({
-                    minX: posX - width / 2,
-                    maxX: posX + width / 2,
-                    minZ: posZ - depth / 2,
-                    maxZ: posZ + depth / 2,
-                    height: height
-                });
-            }
-        }
-
-        this.highestBuildingMesh = highestBldgMesh;
+        // Barandilla de seguridad perimetral en la azotea
+        const railMat = new THREE.MeshStandardMaterial({ color: 0xd9822b, roughness: 0.5, metalness: 0.7 });
+        const railGeo = new THREE.BoxGeometry(16.2, 1.1, 0.1);
+        const rail1 = new THREE.Mesh(railGeo, railMat);
+        rail1.position.set(wx, wHeight + 0.7, wz + 5.1);
+        const rail2 = new THREE.Mesh(railGeo, railMat);
+        rail2.position.set(wx, wHeight + 0.7, wz - 5.1);
+        warehouseGroup.add(rail1);
+        warehouseGroup.add(rail2);
     }
 
-    _createContainerTexture(baseColorHex, codeText) {
-        const c = document.createElement('canvas');
-        c.width = 512; c.height = 256;
-        const ctx = c.getContext('2d');
+    // --- 3. PATIO DE CONTENEDORES MARÍTIMOS (PILAS REALISTAS 2 Y 3 ALTURAS) ---
+    _buildContainerTerminal() {
+        const yardGroup = new THREE.Group();
+        this.scene.add(yardGroup);
 
-        ctx.fillStyle = baseColorHex;
-        ctx.fillRect(0, 0, 512, 256);
+        const colors = [0x0e5f96, 0xb82626, 0x1e5631, 0xd46813, 0x2b2d42];
+        const containerL = 6.06; // 20ft estándar
+        const containerW = 2.44;
+        const containerH = 2.59;
 
-        // Corrugado realista de chapa
-        for (let x = 12; x < 500; x += 16) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
-            ctx.fillRect(x, 10, 6, 236);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-            ctx.fillRect(x + 6, 10, 6, 236);
-        }
-
-        ctx.lineWidth = 12;
-        ctx.strokeStyle = 'rgba(12, 16, 22, 0.85)';
-        ctx.strokeRect(6, 6, 500, 244);
-
-        // Cantoneras de izado reforzadas
-        ctx.fillStyle = '#181d24';
-        ctx.fillRect(2, 2, 28, 28);
-        ctx.fillRect(482, 2, 28, 28);
-        ctx.fillRect(2, 226, 28, 28);
-        ctx.fillRect(482, 226, 28, 28);
-
-        ctx.font = 'bold 22px Roboto Mono, monospace';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.fillText(codeText || 'LIEB-40FT', 40, 54);
-
-        return new THREE.CanvasTexture(c);
-    }
-
-    _buildContainerYard() {
-        const containerColors = [
-            { hex: '#0e5f96', code: 'MAERSK' },
-            { hex: '#b33927', code: 'K-LINE' },
-            { hex: '#d9651e', code: 'HAPAG' },
-            { hex: '#1e683b', code: 'EVERGREEN' },
-            { hex: '#c99a18', code: 'LIEBHERR' }
+        // Pila A: Lateral Norte-Este (x: 28, z: 22)
+        const stackAConfigs = [
+            { rx: 0, rz: 0, h: 2, c: 0x0e5f96 },
+            { rx: 0, rz: 1, h: 3, c: 0xb82626 },
+            { rx: 1, rz: 0, h: 2, c: 0x1e5631 },
+            { rx: 1, rz: 1, h: 2, c: 0xd46813 },
+            { rx: 2, rz: 0, h: 1, c: 0x2b2d42 }
         ];
 
-        const containerGeo = new THREE.BoxGeometry(6, 5, 14);
-        const cRoofMat = new THREE.MeshStandardMaterial({ color: 0x1a1e26, roughness: 0.82 });
+        stackAConfigs.forEach(cfg => {
+            const posX = 24 + cfg.rx * (containerL + 0.6);
+            const posZ = 18 + cfg.rz * (containerW + 0.4);
 
-        const yardStartX = 25;
-        const yardStartZ = -30;
-        let cIdx = 0;
+            for (let floor = 0; floor < cfg.h; floor++) {
+                const boxGeo = new THREE.BoxGeometry(containerL, containerH, containerW);
+                const col = colors[(cfg.c + floor) % colors.length];
+                const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.55, metalness: 0.35 });
+                const box = new THREE.Mesh(boxGeo, mat);
+                box.position.set(posX, floor * containerH + containerH * 0.5, posZ);
+                box.castShadow = true;
+                box.receiveShadow = true;
+                yardGroup.add(box);
 
-        for (let row = 0; row < 3; row++) {
-            for (let bay = 0; bay < 4; bay++) {
-                const stackHeight = 1 + (bay % 3);
-                const cx = yardStartX + row * 16;
-                const cz = yardStartZ + bay * 18;
-
-                for (let tier = 0; tier < stackHeight; tier++) {
-                    const cInfo = containerColors[(cIdx++) % containerColors.length];
-                    const cTex = this._createContainerTexture(cInfo.hex, cInfo.code);
-                    const cWallMat = new THREE.MeshStandardMaterial({
-                        map: cTex,
-                        roughness: 0.42,
-                        metalness: 0.35
-                    });
-
-                    const crate = new THREE.Mesh(containerGeo, [
-                        cWallMat, cWallMat, cRoofMat, cRoofMat, cWallMat, cWallMat
-                    ]);
-                    const cy = 2.5 + tier * 5.05;
-                    crate.position.set(cx, cy, cz);
-                    crate.castShadow = true;
-                    crate.receiveShadow = true;
-                    this.scene.add(crate);
-                }
-
-                this.obstacles.push({
-                    minX: cx - 3.2, maxX: cx + 3.2,
-                    minZ: cz - 7.2, maxZ: cz + 7.2,
-                    height: stackHeight * 5.05
-                });
+                // Marco de cantoneras negras
+                const wireGeo = new THREE.BoxGeometry(containerL + 0.05, containerH + 0.05, containerW + 0.05);
+                const wireMat = new THREE.MeshBasicMaterial({ color: 0x11161d, wireframe: true });
+                const wire = new THREE.Mesh(wireGeo, wireMat);
+                wire.position.copy(box.position);
+                yardGroup.add(wire);
             }
-        }
+
+            // Obstáculo de colisión
+            this.obstacles.push({
+                minX: posX - containerL * 0.5 - 0.5,
+                maxX: posX + containerL * 0.5 + 0.5,
+                minZ: posZ - containerW * 0.5 - 0.5,
+                maxZ: posZ + containerW * 0.5 + 0.5,
+                height: cfg.h * containerH
+            });
+        });
+
+        // Pila B: Lateral Oeste (x: -30, z: 12)
+        const stackBConfigs = [
+            { rx: 0, rz: 0, h: 2, c: 0xd46813 },
+            { rx: 0, rz: 1, h: 2, c: 0x0e5f96 },
+            { rx: 1, rz: 0, h: 3, c: 0x1e5631 }
+        ];
+
+        stackBConfigs.forEach(cfg => {
+            const posX = -28 + cfg.rx * (containerL + 0.6);
+            const posZ = 8 + cfg.rz * (containerW + 0.4);
+
+            for (let floor = 0; floor < cfg.h; floor++) {
+                const boxGeo = new THREE.BoxGeometry(containerL, containerH, containerW);
+                const mat = new THREE.MeshStandardMaterial({ color: cfg.c, roughness: 0.55, metalness: 0.35 });
+                const box = new THREE.Mesh(boxGeo, mat);
+                box.position.set(posX, floor * containerH + containerH * 0.5, posZ);
+                box.castShadow = true;
+                box.receiveShadow = true;
+                yardGroup.add(box);
+            }
+
+            this.obstacles.push({
+                minX: posX - containerL * 0.5 - 0.5,
+                maxX: posX + containerL * 0.5 + 0.5,
+                minZ: posZ - containerW * 0.5 - 0.5,
+                maxZ: posZ + containerW * 0.5 + 0.5,
+                height: cfg.h * containerH
+            });
+        });
     }
 
-    getGroundHeightAt(x, z) {
-        let maxH = 0;
-        for (const obs of this.obstacles) {
-            if (x >= obs.minX && x <= obs.maxX && z >= obs.minZ && z <= obs.maxZ) {
-                if (obs.height > maxH) maxH = obs.height;
-            }
+    // --- 4. TORRES DE ILUMINACIÓN DE ALTA POTENCIA (PORT FLOODLIGHTS) ---
+    _buildLightingTowers() {
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0x6e7681, roughness: 0.6, metalness: 0.7 });
+        const lampMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        const towerPositions = [
+            { x: -45, z: -45 },
+            { x: 55, z: -45 },
+            { x: -45, z: 45 },
+            { x: 55, z: 45 }
+        ];
+
+        towerPositions.forEach(pos => {
+            const mastHeight = 22;
+            const mastGeo = new THREE.CylinderGeometry(0.35, 0.65, mastHeight, 8);
+            const mast = new THREE.Mesh(mastGeo, towerMat);
+            mast.position.set(pos.x, mastHeight * 0.5, pos.z);
+            mast.castShadow = true;
+            this.scene.add(mast);
+
+            // Corona de proyectores LED
+            const headGeo = new THREE.BoxGeometry(2.4, 0.4, 1.2);
+            const head = new THREE.Mesh(headGeo, towerMat);
+            head.position.set(pos.x, mastHeight, pos.z);
+            this.scene.add(head);
+
+            const lampGeo = new THREE.BoxGeometry(2.2, 0.2, 1.0);
+            const lamp = new THREE.Mesh(lampGeo, lampMat);
+            lamp.position.set(pos.x, mastHeight - 0.2, pos.z);
+            this.scene.add(lamp);
+
+            // Obstáculo de pilar
+            this.obstacles.push({
+                minX: pos.x - 1.0,
+                maxX: pos.x + 1.0,
+                minZ: pos.z - 1.0,
+                maxZ: pos.z + 1.0,
+                height: mastHeight
+            });
+        });
+    }
+
+    // --- 5. BARRERAS DE SEGURIDAD NEW JERSEY ---
+    _buildPerimeterSecurity() {
+        const barrierMat = new THREE.MeshStandardMaterial({ color: 0x8b949e, roughness: 0.9, metalness: 0.1 });
+        const barrierGeo = new THREE.BoxGeometry(3.0, 0.85, 0.6);
+
+        // Valla frontal del muelle
+        for (let x = 12; x <= 56; x += 3.2) {
+            const barrier = new THREE.Mesh(barrierGeo, barrierMat);
+            barrier.position.set(x, 0.42, 6.0);
+            barrier.castShadow = true;
+            barrier.receiveShadow = true;
+            this.scene.add(barrier);
+
+            // Banda reflectante roja/blanca
+            const stripGeo = new THREE.BoxGeometry(3.01, 0.15, 0.62);
+            const stripMat = new THREE.MeshBasicMaterial({ color: 0xd73a49 });
+            const strip = new THREE.Mesh(stripGeo, stripMat);
+            strip.position.copy(barrier.position);
+            this.scene.add(strip);
         }
-        return maxH;
     }
 }
