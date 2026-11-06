@@ -256,16 +256,16 @@ export class CargoManager {
     }
 
     _createCargoTemplates() {
-        // Creamos las cargas disponibles para las diferentes misiones
+        // Cargas de obra civil calibradas con las plataformas del edificio en construcción
         this.cargoList = [
             {
                 id: 1,
-                name: 'CONTENEDOR MAERSK 20FT (18 T)',
+                name: 'CONTENEDOR 20FT MAERSK (18 T)',
                 type: 'CONTAINER_20FT',
                 massTon: 18.0,
                 mesh: this._buildContainer20ft('#0e5f96', 'MAERSK 20FT'),
-                pickupPos: new THREE.Vector3(28, 0, 18),
-                dropTarget: { x: 38, y: 0.1, z: 24, radius: 3.8, name: 'BAHÍA DE DESCARGA EN SUELO' }
+                pickupPos: new THREE.Vector3(-16, 1.3, 22),
+                dropTarget: { x: 6, y: 0.1, z: 18, radius: 3.8, name: 'BAHÍA DE DESCARGA EN SOLERA (COTA 0)' }
             },
             {
                 id: 2,
@@ -273,8 +273,8 @@ export class CargoManager {
                 type: 'CONCRETE_PIPE',
                 massTon: 14.0,
                 mesh: this._buildHeavyConcretePipe(),
-                pickupPos: new THREE.Vector3(20, 1.3, -15),
-                dropTarget: { x: 41, y: 10.1, z: -12, radius: 3.5, name: 'PLATAFORMA SOBRE CONTENEDORES' }
+                pickupPos: new THREE.Vector3(-20, 1.3, -12),
+                dropTarget: { x: 23.5, y: 5.2, z: -3.6, radius: 3.6, name: 'PLATAFORMA VOLADA PLANTA 1 (+5m)' }
             },
             {
                 id: 3,
@@ -282,8 +282,8 @@ export class CargoManager {
                 type: 'HVAC_ROOF_UNIT',
                 massTon: 8.5,
                 mesh: this._buildHVACUnit(),
-                pickupPos: new THREE.Vector3(-25, 1.0, 25),
-                dropTarget: null // Se rellenará dinámicamente con la azotea
+                pickupPos: new THREE.Vector3(-26, 1.0, 8),
+                dropTarget: { x: 32, y: 20.4, z: -18, radius: 4.5, name: 'AZOTEA EN CONSTRUCCIÓN (+20m)' }
             },
             {
                 id: 4,
@@ -291,8 +291,8 @@ export class CargoManager {
                 type: 'TRANSFORMER_HEAVY',
                 massTon: 28.0,
                 mesh: this._buildHeavyTransformer(),
-                pickupPos: new THREE.Vector3(32, 1.4, -22),
-                dropTarget: { x: 15, y: 0.1, z: 35, radius: 3.5, name: 'SUBESTACIÓN DE OBRA' }
+                pickupPos: new THREE.Vector3(8, 1.4, 28),
+                dropTarget: { x: 40.5, y: 10.2, z: -3.6, radius: 3.6, name: 'PLATAFORMA VOLADA PLANTA 2 (+10m)' }
             }
         ];
 
@@ -313,15 +313,14 @@ export class CargoManager {
     }
 
     setRooftopTarget(rooftopTarget) {
-        // Asignar el objetivo de la misión 3 (HVAC a azotea)
         const hvacCargo = this.cargoList.find(c => c.type === 'HVAC_ROOF_UNIT');
-        if (hvacCargo) {
+        if (hvacCargo && rooftopTarget) {
             hvacCargo.dropTarget = {
                 x: rooftopTarget.x,
-                y: rooftopTarget.y + 0.1,
+                y: rooftopTarget.y,
                 z: rooftopTarget.z,
-                radius: 3.8,
-                name: 'AZOTEA RASCACIELOS (HELIPUERTO)'
+                radius: 4.5,
+                name: 'AZOTEA EN CONSTRUCCIÓN (+20m)'
             };
         }
     }

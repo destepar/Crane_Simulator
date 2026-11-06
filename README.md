@@ -13,13 +13,14 @@ Simulador interactivo en tiempo real y gemelo digital de la grúa móvil **Liebh
   * **Colisiones y fricción con el suelo:** Al posar la carga o chocar lateralmente contra obstáculos, la oscilación se amortigua y rebota elásticamente.
   * **Cable Volumétrico 3D y Sombra de Contacto:** Cable principal de acero modelado en geometría cilíndrica 3D PBR reflectante (en lugar de líneas de 1px) y disco de sombra suave proyectado en el suelo bajo la carga.
   * **HUD de Misión Estable:** Lecturas limpias de `DIST` y `ALT` sin parpadeo numérico, acompañadas de indicador de estado (`ESTABLE`, `CALMANDO`, `OSCILANDO`).
-* **Modo Misiones con Dianas de Alta Visibilidad (Flechas 3D Flotantes):**
-  * **Flechas de Waypoint 3D:** Cada zona activa cuenta con una flecha flotante tridimensional en rojo vibrante con halo rotatorio y un haz de luz vertical visible desde cualquier punto del mapa.
-  * **Diana concéntrica bicolor:** Señalización de alto contraste en rojo y blanco reflectante en el suelo, sobre contenedores y en azoteas.
-  * **3 Misiones escalonadas:**
-    * **Zona A (Suelo — 100 PTS):** Bahía de carga a cota 0 (Fácil).
-    * **Zona B (Contenedores — 250 PTS):** Posado a 10m de altura sobre el stack de contenedores (Media).
-    * **Zona C (Helipuerto — 500 PTS):** Izado extremo a más de 70m en la azotea del rascacielos (Experto).
+* **Ambientación de Obra Civil & Estructura en Construcción:**
+  * **Edificio en Fase de Estructura de Hormigón Armado:** Losas de forjado sucesivas (Planta Baja, Planta 1 a +5m, Planta 2 a +10m y Azotea a +20m) con pilares cuadrados, esperas de armadura de ferralla hacia el cielo y andamios modulares de obra.
+  * **Plataformas Voladas de Recepción (Cantilever Decks):** Plataformas metálicas amarillas en voladizo en las plantas 1 y 2 con barandillas provisionales de seguridad rojas para recepción técnica de cargas suspendidas.
+  * **Terreno de Obra PBR Realista:** Suelo de zahorra/grava compactada, viales de rodadura de camiones, planchas de acero de reparto de carga para los apoyos del camión y delimitación perimetral con barreras New Jersey bicolor rojo y blanco.
+  * **Campamento de Obra:** Casetas modulares prefabricadas de oficina técnica con escalera exterior metálica.
+* **Sistema de Recogida y Depósito (Pick & Place) con Variedad de Cargas:**
+  * **Geometrías y Cargas Reales:** Contenedor marítimo 20ft (18T), Tubería cilíndrica de hormigón armado (14T), Climatizador industrial HVAC (8.5T) y Transformador eléctrico de subestación (28T).
+  * **Ciclo de Misión en Dos Etapas (Recogida + Depósito):** Maniobra con gancho libre hasta el cáncamo de izado en el acopio, pulsa Espacio para amarrar, transporta hasta las plataformas de descarga del edificio y pulsa Espacio para depositar.
 * **Sistema Multi-Cámara Profesional (Teclas 1, 2, 3, 4):**
   * **`1` — Cámara Grúa (Órbita Global):** Vista general para maniobra y conducción del chasis.
   * **`2` — Cámara Gancho (Hook Cam):** Enfoca la carga suspendida desde arriba para posar con precisión milimétrica.
