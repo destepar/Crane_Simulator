@@ -1,13 +1,13 @@
-import { THREE } from './core/three.js';
-import { SceneManager } from './core/SceneManager.js';
-import { InputManager } from './core/InputManager.js';
-import { Environment } from './environment/Environment.js';
-import { CraneModel } from './crane/CraneModel.js';
-import { CraneController } from './crane/CraneController.js';
-import { WinchRigging } from './crane/WinchRigging.js';
-import { CargoManager } from './systems/CargoManager.js';
-import { MissionSystem } from './systems/MissionSystem.js';
-import { HUDManager } from './ui/HUDManager.js';
+import { THREE } from './core/three.js?v=construction_v1';
+import { SceneManager } from './core/SceneManager.js?v=construction_v1';
+import { InputManager } from './core/InputManager.js?v=construction_v1';
+import { Environment } from './environment/Environment.js?v=construction_v1';
+import { CraneModel } from './crane/CraneModel.js?v=construction_v1';
+import { CraneController } from './crane/CraneController.js?v=construction_v1';
+import { WinchRigging } from './crane/WinchRigging.js?v=construction_v1';
+import { CargoManager } from './systems/CargoManager.js?v=construction_v1';
+import { MissionSystem } from './systems/MissionSystem.js?v=construction_v1';
+import { HUDManager } from './ui/HUDManager.js?v=construction_v1';
 
 class SimulatorApp {
     constructor() {
