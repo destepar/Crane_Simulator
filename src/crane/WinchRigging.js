@@ -29,26 +29,26 @@ export class WinchRigging {
         const steelMat = new THREE.MeshStandardMaterial({ color: 0x24292f, roughness: 0.25, metalness: 0.85 });
         const stripeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, roughness: 0.8 });
 
-        // Bloque de la polea
-        const pulleyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.9), pulleyMat);
+        // Bloque de la polea calibrado (Escala realista para grúa de 110T: 0.7m ancho x 0.85m alto x 0.5m fondo)
+        const pulleyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.5), pulleyMat);
         pulleyMesh.castShadow = true;
         this.hookGroup.add(pulleyMesh);
 
         // Franja de seguridad central
-        const stripeMesh = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.35, 0.92), stripeMat);
+        const stripeMesh = new THREE.Mesh(new THREE.BoxGeometry(0.71, 0.22, 0.51), stripeMat);
         this.hookGroup.add(stripeMesh);
 
-        // Gancho curvo de acero
-        const hookCurvMesh = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.16, 12, 24, Math.PI * 1.4), steelMat);
-        hookCurvMesh.position.set(0, -1.2, 0);
+        // Gancho curvo de acero forjado estilizado (radio 0.32m, tubo 0.09m)
+        const hookCurvMesh = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.09, 12, 24, Math.PI * 1.4), steelMat);
+        hookCurvMesh.position.set(0, -0.72, 0);
         hookCurvMesh.rotation.z = Math.PI * 0.85;
         hookCurvMesh.castShadow = true;
         this.hookGroup.add(hookCurvMesh);
     }
 
     _buildCables() {
-        // CABLE VOLUMÉTRICO 3D (Cilindro de acero de 9 cm de diámetro)
-        const cableGeo = new THREE.CylinderGeometry(0.045, 0.045, 1, 8);
+        // CABLE VOLUMÉTRICO 3D (Cilindro de acero de 3.2 cm de diámetro real)
+        const cableGeo = new THREE.CylinderGeometry(0.016, 0.016, 1, 8);
         const cableMat = new THREE.MeshStandardMaterial({
             color: 0x1f242c,
             roughness: 0.32,
@@ -70,7 +70,7 @@ export class WinchRigging {
 
     _buildContactShadow() {
         // Sombra de contacto suave proyectada en el suelo
-        const shadowGeo = new THREE.CircleGeometry(1.4, 24);
+        const shadowGeo = new THREE.CircleGeometry(1.2, 24);
         const shadowMat = new THREE.MeshBasicMaterial({
             color: 0x05070a,
             transparent: true,
@@ -125,9 +125,9 @@ export class WinchRigging {
 
         const effectiveMass = this.isHooked && this.attachedCargo ? this.attachedCargo.massTon : 1.2;
         const cargoMesh = this.isHooked && this.attachedCargo ? this.attachedCargo.mesh : null;
-        const cargoHalfY = cargoMesh && cargoMesh.userData.halfExtents ? cargoMesh.userData.halfExtents.y : 0.8;
-        const hookOffset = this.isHooked ? cargoHalfY + 2.2 : 0.8;
-        const minCableLength = hookOffset + 1.2;
+        const cargoHalfY = cargoMesh && cargoMesh.userData.halfExtents ? cargoMesh.userData.halfExtents.y : 0.6;
+        const hookOffset = this.isHooked ? cargoHalfY + 1.2 : 0.6;
+        const minCableLength = hookOffset + 1.0;
 
         // 2. Inercia de la punta de la pluma
         const dtSafe = Math.min(Math.max(dt, 0.001), 0.08);
@@ -148,79 +148,55 @@ export class WinchRigging {
         // 3. Ecuación diferencial del oscilador armónico pendular 3D
         const effL = Math.max(2.0, this.cableLength);
         const omegaSq = G / effL;
-        const omega = Math.sqrt(omegaSq);
+        const DAMPING = this.isHooked ? 0.45 : 0.65;
 
-        const dampingRatio = 0.045 + 0.065 / (1.0 + effectiveMass * 0.08);
-        const dampingCoeff = 2.0 * dampingRatio * omega;
+        const d2X = -omegaSq * this.swayOffset.x - DAMPING * this.swayVelocity.x - inertialAccelX;
+        const d2Z = -omegaSq * this.swayOffset.y - DAMPING * this.swayVelocity.y - inertialAccelZ;
 
-        const swaySpeed = this.swayVelocity.length();
-        const dragFactor = 0.12 * swaySpeed;
+        this.swayVelocity.x += d2X * dtSafe;
+        this.swayVelocity.y += d2Z * dtSafe;
 
-        const accelSwayX = -omegaSq * this.swayOffset.x - inertialAccelX - (dampingCoeff + dragFactor) * this.swayVelocity.x;
-        const accelSwayZ = -omegaSq * this.swayOffset.y - inertialAccelZ - (dampingCoeff + dragFactor) * this.swayVelocity.y;
-
-        this.swayVelocity.x += accelSwayX * dtSafe;
-        this.swayVelocity.y += accelSwayZ * dtSafe;
+        const maxSwaySpeed = 8.5;
+        this.swayVelocity.clampLength(0, maxSwaySpeed);
 
         this.swayOffset.x += this.swayVelocity.x * dtSafe;
         this.swayOffset.y += this.swayVelocity.y * dtSafe;
 
-        // Zona muerta de reposo
-        if (tipAccel.lengthSq() < 0.05 && this.swayOffset.length() < 0.035 && swaySpeed < 0.025) {
-            this.swayOffset.multiplyScalar(Math.max(0, 1.0 - dtSafe * 5.0));
-            this.swayVelocity.multiplyScalar(Math.max(0, 1.0 - dtSafe * 6.0));
-        }
+        const maxOffset = effL * 0.45;
+        this.swayOffset.clampLength(0, maxOffset);
 
-        const maxSwayDist = effL * 0.707;
-        const currentSwayDist = this.swayOffset.length();
-        if (currentSwayDist > maxSwayDist) {
-            this.swayOffset.multiplyScalar(maxSwayDist / currentSwayDist);
-            this.swayVelocity.multiplyScalar(0.85);
-        }
+        // 4. Cinemática de posición del gancho
+        const currentX = tipWorld.x + this.swayOffset.x;
+        const currentZ = tipWorld.z + this.swayOffset.y;
+        const rHorizSq = this.swayOffset.lengthSq();
+        const deltaY = Math.sqrt(Math.max(0.01, effL * effL - rHorizSq));
+        let currentY = tipWorld.y - deltaY;
 
-        // 4. Altura vertical en el arco del péndulo
-        const horizDistSq = this.swayOffset.x * this.swayOffset.x + this.swayOffset.y * this.swayOffset.y;
-        const verticalDrop = Math.sqrt(Math.max(0.1, effL * effL - horizDistSq));
-
-        let currentX = tipWorld.x + this.swayOffset.x;
-        let currentZ = tipWorld.z + this.swayOffset.y;
-        let currentY = tipWorld.y - verticalDrop;
-
-        // 5. Suelo y obstáculos
+        // 5. Altura mínima y colisión de suelo / obstáculos
         const groundH = environment.getGroundHeightAt(currentX, currentZ);
-        const minimumY = groundH + (this.isHooked ? cargoHalfY : 0.6);
+        const minimumY = groundH + hookOffset;
 
-        const maxCableLength = Math.max(minCableLength, tipWorld.y - minimumY);
-        if (this.cableLength < minCableLength) this.cableLength = minCableLength;
-        if (this.cableLength > maxCableLength) this.cableLength = maxCableLength;
-
-        let isGrounded = false;
-        if (currentY <= minimumY) {
+        if (currentY < minimumY) {
             currentY = minimumY;
-            isGrounded = true;
-            const groundFriction = Math.max(0, 1.0 - dtSafe * 12.0);
-            this.swayVelocity.multiplyScalar(groundFriction);
-            this.swayOffset.multiplyScalar(groundFriction);
+            this.cableLength = Math.max(minCableLength, tipWorld.y - minimumY);
+            this.swayVelocity.multiplyScalar(0.75);
         }
 
-        // 6. Aparejo de Gancho: posición y orientación
-        const wireVec = new THREE.Vector3().subVectors(tipWorld, new THREE.Vector3(currentX, currentY, currentZ));
-        const wireDir = wireVec.clone().normalize();
-
-        const hookY = this.isHooked ? currentY + hookOffset : currentY;
-        const hookPos = new THREE.Vector3(currentX, hookY, currentZ);
+        const hookPos = new THREE.Vector3(currentX, currentY, currentZ);
         this.hookGroup.position.copy(hookPos);
-        this.hookGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), wireDir);
-        this.hookGroup.rotateY(craneRotationY);
+
+        // 6. Orientación del gancho siguiendo la catenaria
+        const wireDir = new THREE.Vector3(this.swayOffset.x, -deltaY, this.swayOffset.y).normalize();
+        this.hookGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), wireDir);
 
         // 7. Si hay carga enganchada: posicionar la carga
         if (this.isHooked && cargoMesh) {
-            cargoMesh.position.set(currentX, currentY, currentZ);
+            cargoMesh.position.set(currentX, currentY - 0.25, currentZ);
             cargoMesh.rotation.set((this.swayOffset.y / effL) * 0.3, craneRotationY, (-this.swayOffset.x / effL) * 0.3);
         }
 
-        // 8. CABLE VOLUMÉTRICO 3D (Cilindro orientado y escalado con precisión)
-        const hookPulleyTop = hookPos.clone().addScaledVector(wireDir, 0.7);
+        // 8. CABLE VOLUMÉTRICO 3D (Orientado desde la punta de pluma hasta la polea)
+        const hookPulleyTop = hookPos.clone().addScaledVector(wireDir, 0.42);
         const cableVec = new THREE.Vector3().subVectors(tipWorld, hookPulleyTop);
         const cableDist = cableVec.length();
         const cableMid = new THREE.Vector3().addVectors(tipWorld, hookPulleyTop).multiplyScalar(0.5);
@@ -230,11 +206,10 @@ export class WinchRigging {
         this.cableMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cableVec.clone().normalize());
 
         // 9. Actualizar eslingas
-        const hookEyeBottom = hookPos.clone().addScaledVector(wireDir, -1.25);
+        const hookEyeBottom = hookPos.clone().addScaledVector(wireDir, -0.75);
         const sp = this.slingLines.geometry.attributes.position.array;
 
         if (this.isHooked && cargoMesh && cargoMesh.userData.cornersLocal) {
-            // Eslingas tensadas hacia los 4 cáncamos de la carga activa
             const corners = cargoMesh.userData.cornersLocal;
             for (let i = 0; i < 4; i++) {
                 const worldC = corners[i].clone().applyEuler(cargoMesh.rotation).add(cargoMesh.position);
@@ -246,9 +221,9 @@ export class WinchRigging {
                 sp[i * 6 + 5] = worldC.z;
             }
         } else {
-            // Gancho vacío: las eslingas cuelgan juntas hacia abajo
-            const hangY = hookEyeBottom.y - 1.2;
-            const spread = 0.15;
+            // Gancho vacío: eslingas cuelgan compactas hacia abajo
+            const hangY = hookEyeBottom.y - 0.75;
+            const spread = 0.08;
             const offsets = [
                 [spread, spread],
                 [spread, -spread],
@@ -269,31 +244,22 @@ export class WinchRigging {
         // 10. Sombra suave de contacto
         const distToGround = Math.max(0.05, currentY - minimumY);
         this.contactShadow.position.set(currentX, groundH + 0.06, currentZ);
-        const shadowBase = this.isHooked ? cargoHalfY * 1.5 : 0.8;
-        const shadowScale = Math.min(3.0, shadowBase + (distToGround / 12.0));
+        const shadowBase = this.isHooked ? cargoHalfY * 1.5 : 0.6;
+        const shadowScale = Math.min(2.5, shadowBase + (distToGround / 12.0));
         this.contactShadow.scale.set(shadowScale, shadowScale, 1);
         this.contactShadow.material.opacity = Math.max(0.08, 0.60 - (distToGround / 22.0));
 
-        // 11. Retícula holográfica en suelo
-        this.groundTargetGroup.position.set(currentX, groundH + 0.12, currentZ);
-        const pulse = 0.5 + 0.5 * Math.sin(timeNow * 0.006);
-        const scaleTarget = Math.min(2.2, 0.9 + (distToGround / 25));
-        this.groundTargetGroup.scale.set(scaleTarget, 1, scaleTarget);
-
-        if (distToGround < 2.5) {
-            this.targetRingMat.color.setHex(0xf6e05e);
-            this.targetRingMat.opacity = 0.75 + 0.25 * pulse;
-        } else {
-            this.targetRingMat.color.setHex(0x00f3ff);
-            this.targetRingMat.opacity = Math.max(0.25, 0.65 - (distToGround / 60));
-        }
+        // 11. Diana de proyección en suelo
+        this.groundTargetGroup.position.set(currentX, groundH + 0.04, currentZ);
+        const ringAlpha = Math.max(0.12, 0.70 - (distToGround / 28.0));
+        this.targetRingMat.opacity = ringAlpha;
+        this.targetDotMat.opacity = ringAlpha * 0.85;
 
         return {
-            currentX, currentY, currentZ,
             hookPos,
-            isGrounded,
             effectiveMass,
-            effL
+            cableLength: this.cableLength,
+            swayOffset: this.swayOffset
         };
     }
 }

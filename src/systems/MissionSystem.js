@@ -204,6 +204,11 @@ export class MissionSystem {
         const distH = Math.hypot(tipWorld.x - currentTarget.x, tipWorld.z - currentTarget.z);
         const hookPos = winchRigging.hookGroup.position;
 
+        // Actualizar visibilidad dinámica de aparejos/crucetas según proximidad del gancho
+        if (typeof this.cargoManager.updateRiggingProximity === 'function') {
+            this.cargoManager.updateRiggingProximity(hookPos, winchRigging.isHooked);
+        }
+
         let promptMsg = '';
         this.canPerformAction = false;
 

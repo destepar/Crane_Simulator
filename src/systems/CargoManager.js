@@ -1,4 +1,4 @@
-import { THREE } from '../core/three.js';
+import { THREE, GLTFLoader } from '../core/three.js';
 
 export class CargoManager {
     constructor(scene) {
@@ -6,322 +6,309 @@ export class CargoManager {
         this.activeCargo = null;
         this.cargoList = [];
 
-        this._createCargoTemplates();
+        this._create3DMissionCargos();
     }
 
-    _createContainerTexture(colorHex, label) {
-        const c = document.createElement('canvas');
-        c.width = 512; c.height = 256;
-        const ctx = c.getContext('2d');
+    _create3DMissionCargos() {
+        const loader = new THREE.GLTFLoader();
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0x22272e, metalness: 0.85, roughness: 0.25 });
+        const slingMat = new THREE.MeshStandardMaterial({ color: 0xeb9800, roughness: 0.5, metalness: 0.1 });
 
-        ctx.fillStyle = colorHex;
-        ctx.fillRect(0, 0, 512, 256);
-
-        // Chapa corrugada
-        for (let x = 12; x < 500; x += 16) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-            ctx.fillRect(x, 8, 6, 240);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(x + 6, 8, 6, 240);
-        }
-
-        ctx.lineWidth = 14;
-        ctx.strokeStyle = 'rgba(10, 14, 20, 0.9)';
-        ctx.strokeRect(6, 6, 500, 244);
-
-        ctx.font = 'bold 24px Roboto Mono, monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(label || 'CARGO-20FT', 40, 55);
-
-        return new THREE.CanvasTexture(c);
-    }
-
-    _buildContainer20ft(colorHex = '#0e5f96', label = 'MAERSK 20FT') {
-        const group = new THREE.Group();
-        const tex = this._createContainerTexture(colorHex, label);
-
-        const wallMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.45, metalness: 0.35 });
-        const roofMat = new THREE.MeshStandardMaterial({ color: 0x181d24, roughness: 0.8 });
-
-        const length = 6.2;
-        const height = 2.6;
-        const width = 2.4;
-
-        const boxGeo = new THREE.BoxGeometry(length, height, width);
-        const mesh = new THREE.Mesh(boxGeo, [wallMat, wallMat, roofMat, roofMat, wallMat, wallMat]);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        group.add(mesh);
-
-        // 4 Cantoneras de esquina superiores reforzadas con cáncamos de izado
-        const cornerMat = new THREE.MeshStandardMaterial({ color: 0xf6c000, metalness: 0.8, roughness: 0.25 });
-        const halfL = length * 0.5 - 0.15;
-        const halfW = width * 0.5 - 0.15;
-        const topY = height * 0.5;
-
-        [
-            [halfL, topY, halfW],
-            [halfL, topY, -halfW],
-            [-halfL, topY, -halfW],
-            [-halfL, topY, halfW]
-        ].forEach(([cx, cy, cz]) => {
-            const eyeGeo = new THREE.TorusGeometry(0.18, 0.05, 8, 16);
-            const eyeMesh = new THREE.Mesh(eyeGeo, cornerMat);
-            eyeMesh.position.set(cx, cy + 0.18, cz);
-            eyeMesh.rotation.x = Math.PI / 2;
-            group.add(eyeMesh);
-        });
-
-        group.userData = {
-            type: 'CONTAINER_20FT',
-            massTon: 18.0,
-            halfExtents: new THREE.Vector3(length * 0.5, height * 0.5, width * 0.5),
+        // -------------------------------------------------------------
+        // CARGA 1: SUPERDEPORTIVO PORSCHE 911 GT3 RS (MATERIALES NATIVOS DE BLENDER)
+        // -------------------------------------------------------------
+        const carGroup = new THREE.Group();
+        carGroup.userData = {
+            type: 'REAL_CAR_CARGO',
+            massTon: 1.5,
+            halfExtents: new THREE.Vector3(1.0, 0.7, 2.3),
             cornersLocal: [
-                new THREE.Vector3(halfL, topY + 0.2, halfW),
-                new THREE.Vector3(halfL, topY + 0.2, -halfW),
-                new THREE.Vector3(-halfL, topY + 0.2, -halfW),
-                new THREE.Vector3(-halfL, topY + 0.2, halfW)
+                new THREE.Vector3(0.95, 0.4, 1.45),
+                new THREE.Vector3(-0.95, 0.4, 1.45),
+                new THREE.Vector3(-0.95, 0.4, -1.45),
+                new THREE.Vector3(0.95, 0.4, -1.45)
             ],
-            hookTargetY: topY + 0.3
+            hookTargetY: 2.25
         };
 
-        return group;
-    }
+        // Grupo del artefacto de izado (balancín + anilla + eslingas)
+        // Inicialmente oculto para no tapar el coche hasta que el gancho esté próximo
+        const carRigGroup = new THREE.Group();
+        carRigGroup.visible = false;
 
-    _buildHeavyTransformer() {
-        const group = new THREE.Group();
+        const spreaderMat = new THREE.MeshStandardMaterial({ color: 0xf5a623, metalness: 0.7, roughness: 0.3 });
+        const spreaderBar = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 3.2), spreaderMat);
+        spreaderBar.position.y = 1.95;
+        spreaderBar.castShadow = true;
+        carRigGroup.add(spreaderBar);
 
-        // Cuerpo principal de acero grafito
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x272c35, roughness: 0.35, metalness: 0.75 });
-        const bodyGeo = new THREE.BoxGeometry(3.6, 2.8, 2.6);
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.castShadow = true;
-        body.receiveShadow = true;
-        group.add(body);
+        const topRing = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.03, 8, 16), eyeMat);
+        topRing.position.y = 2.12;
+        topRing.rotation.x = Math.PI / 2;
+        carRigGroup.add(topRing);
 
-        // Aletas de refrigeración laterales
-        const finMat = new THREE.MeshStandardMaterial({ color: 0x1a1e24, roughness: 0.5, metalness: 0.8 });
-        for (let x = -1.5; x <= 1.5; x += 0.35) {
-            const finGeo = new THREE.BoxGeometry(0.08, 2.2, 3.2);
-            const fin = new THREE.Mesh(finGeo, finMat);
-            fin.position.set(x, 0, 0);
-            fin.castShadow = true;
-            group.add(fin);
-        }
+        const slingCorners = [
+            { top: [0.95, 1.95, 1.55], bot: [0.95, 0.4, 1.45] },
+            { top: [-0.95, 1.95, 1.55], bot: [-0.95, 0.4, 1.45] },
+            { top: [-0.95, 1.95, -1.55], bot: [-0.95, 0.4, -1.45] },
+            { top: [0.95, 1.95, -1.55], bot: [0.95, 0.4, -1.45] }
+        ];
 
-        // 3 Aisladores cerámicos de alta tensión superiores
-        const ceramicMat = new THREE.MeshStandardMaterial({ color: 0xc85a17, roughness: 0.2, metalness: 0.1 });
-        const capMat = new THREE.MeshStandardMaterial({ color: 0xd0d7de, metalness: 0.9, roughness: 0.15 });
-
-        [-1.0, 0, 1.0].forEach((bx) => {
-            const colGeo = new THREE.CylinderGeometry(0.18, 0.24, 1.1, 12);
-            const col = new THREE.Mesh(colGeo, ceramicMat);
-            col.position.set(bx, 1.4 + 0.55, 0);
-            col.castShadow = true;
-            group.add(col);
-
-            const capGeo = new THREE.SphereGeometry(0.16, 12, 12);
-            const cap = new THREE.Mesh(capGeo, capMat);
-            cap.position.set(bx, 1.4 + 1.1, 0);
-            group.add(cap);
+        slingCorners.forEach(sc => {
+            const vStart = new THREE.Vector3(...sc.top);
+            const vEnd = new THREE.Vector3(...sc.bot);
+            const dir = new THREE.Vector3().subVectors(vEnd, vStart);
+            const len = dir.length();
+            const slingMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, len, 6), slingMat);
+            slingMesh.position.copy(vStart).addScaledVector(dir, 0.5);
+            slingMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            slingMesh.castShadow = true;
+            carRigGroup.add(slingMesh);
         });
 
-        // 4 Cáncamos de izado reforzados
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xf6c000, metalness: 0.85, roughness: 0.2 });
-        const halfX = 1.6;
-        const halfZ = 1.1;
-        const topY = 1.4;
+        carGroup.add(carRigGroup);
+        carGroup.userData.rigGroup = carRigGroup;
 
-        [
-            [halfX, topY, halfZ],
-            [halfX, topY, -halfZ],
-            [-halfX, topY, -halfZ],
-            [-halfX, topY, halfZ]
-        ].forEach(([cx, cy, cz]) => {
-            const eyeGeo = new THREE.TorusGeometry(0.20, 0.06, 8, 16);
-            const eye = new THREE.Mesh(eyeGeo, eyeMat);
-            eye.position.set(cx, cy + 0.2, cz);
+        // Carga respetando 100% los materiales, texturas y colores originales exportados desde Blender
+        loader.load('Assets3D/Porsche.glb', (gltf) => {
+            const porsche = gltf.scene;
+            porsche.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+            carGroup.add(porsche);
+            console.log("[CARGO MANAGER] Modelo 3D Porsche 911 GT3 RS cargado con materiales originales de Blender.");
+        });
+
+        // -------------------------------------------------------------
+        // CARGA 2: BARRERA NEW JERSEY DE HORMIGÓN (concrete_road_barrier_02_1k.glb)
+        // -------------------------------------------------------------
+        const barrierGroup = new THREE.Group();
+        barrierGroup.userData = {
+            type: 'REAL_BARRIER_CARGO',
+            massTon: 2.8,
+            halfExtents: new THREE.Vector3(0.8, 0.55, 0.2),
+            cornersLocal: [
+                new THREE.Vector3(0.55, 1.12, 0.08),
+                new THREE.Vector3(0.55, 1.12, -0.08),
+                new THREE.Vector3(-0.55, 1.12, -0.08),
+                new THREE.Vector3(-0.55, 1.12, 0.08)
+            ],
+            hookTargetY: 1.25
+        };
+
+        const barrierRigGroup = new THREE.Group();
+        barrierRigGroup.visible = false;
+        [-0.5, 0.5].forEach(bx => {
+            const eye = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 8, 16), eyeMat);
+            eye.position.set(bx, 1.14, 0);
             eye.rotation.x = Math.PI / 2;
-            group.add(eye);
+            barrierRigGroup.add(eye);
+        });
+        barrierGroup.add(barrierRigGroup);
+        barrierGroup.userData.rigGroup = barrierRigGroup;
+
+        loader.load('Assets3D/concrete_road_barrier_02_1k.glb', (gltf) => {
+            const barr = gltf.scene;
+            barr.traverse(node => {
+                if (node.isMesh) {
+                    if (node.name.includes('LOD') && !node.name.includes('LOD0')) {
+                        node.visible = false;
+                    } else {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                }
+            });
+            barrierGroup.add(barr);
         });
 
-        group.userData = {
-            type: 'TRANSFORMER_HEAVY',
-            massTon: 28.0,
-            halfExtents: new THREE.Vector3(1.8, 1.4, 1.3),
+        // -------------------------------------------------------------
+        // CARGA 3: ARMARIO TÉCNICO HVAC DE AZOTEA (utility_box_02_1k.glb)
+        // -------------------------------------------------------------
+        const hvacGroup = new THREE.Group();
+        hvacGroup.userData = {
+            type: 'REAL_HVAC_CARGO',
+            massTon: 4.5,
+            halfExtents: new THREE.Vector3(0.46, 0.56, 0.23),
             cornersLocal: [
-                new THREE.Vector3(halfX, topY + 0.2, halfZ),
-                new THREE.Vector3(halfX, topY + 0.2, -halfZ),
-                new THREE.Vector3(-halfX, topY + 0.2, -halfZ),
-                new THREE.Vector3(-halfX, topY + 0.2, halfZ)
+                new THREE.Vector3(0.38, 1.12, 0.16),
+                new THREE.Vector3(0.38, 1.12, -0.16),
+                new THREE.Vector3(-0.38, 1.12, -0.16),
+                new THREE.Vector3(-0.38, 1.12, 0.16)
             ],
-            hookTargetY: topY + 0.3
+            hookTargetY: 1.25
         };
 
-        return group;
-    }
+        const hvacRigGroup = new THREE.Group();
+        hvacRigGroup.visible = false;
+        [
+            [0.36, 0.15], [0.36, -0.15], [-0.36, -0.15], [-0.36, 0.15]
+        ].forEach(([ex, ez]) => {
+            const eye = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.012, 8, 16), eyeMat);
+            eye.position.set(ex, 1.15, ez);
+            eye.rotation.x = Math.PI / 2;
+            hvacRigGroup.add(eye);
+        });
+        hvacGroup.add(hvacRigGroup);
+        hvacGroup.userData.rigGroup = hvacRigGroup;
 
-    _buildHeavyConcretePipe() {
-        const group = new THREE.Group();
-
-        // Cilindro de hormigón armado de gran diámetro (orientado horizontalmente)
-        const pipeMat = new THREE.MeshStandardMaterial({ color: 0x6e7681, roughness: 0.88, metalness: 0.1 });
-        const pipeGeo = new THREE.CylinderGeometry(1.3, 1.3, 7.5, 24, 1, true);
-        const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-        pipe.rotation.z = Math.PI / 2;
-        pipe.castShadow = true;
-        pipe.receiveShadow = true;
-        group.add(pipe);
-
-        // Tapa/núcleo interno hueco oscuro
-        const innerMat = new THREE.MeshStandardMaterial({ color: 0x1f242c, roughness: 0.95 });
-        const innerGeo = new THREE.CylinderGeometry(1.05, 1.05, 7.55, 24, 1, true);
-        const inner = new THREE.Mesh(innerGeo, innerMat);
-        inner.rotation.z = Math.PI / 2;
-        group.add(inner);
-
-        // Bandas tensoras de izado de nylon amarillo alrededor del tubo
-        const strapMat = new THREE.MeshStandardMaterial({ color: 0xe6a100, roughness: 0.4 });
-        [-2.4, 2.4].forEach(sx => {
-            const sGeo = new THREE.CylinderGeometry(1.34, 1.34, 0.4, 24, 1, true);
-            const s = new THREE.Mesh(sGeo, strapMat);
-            s.rotation.z = Math.PI / 2;
-            s.position.x = sx;
-            group.add(s);
+        loader.load('Assets3D/utility_box_02_1k.glb', (gltf) => {
+            const box = gltf.scene;
+            box.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+            hvacGroup.add(box);
         });
 
-        // Cunas de apoyo de madera en el suelo
-        const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
-        [-2.4, 2.4].forEach(sx => {
-            const cradleGeo = new THREE.BoxGeometry(0.6, 0.5, 2.8);
-            const cradle = new THREE.Mesh(cradleGeo, woodMat);
-            cradle.position.set(sx, -1.3 + 0.25, 0);
-            cradle.castShadow = true;
-            group.add(cradle);
-        });
-
-        group.userData = {
-            type: 'CONCRETE_PIPE',
-            massTon: 14.0,
-            halfExtents: new THREE.Vector3(3.75, 1.3, 1.3),
+        // -------------------------------------------------------------
+        // CARGA 4: ARMARIO DE SUBESTACIÓN ELÉCTRICA (utility_box_01_1k.glb)
+        // -------------------------------------------------------------
+        const subBoxGroup = new THREE.Group();
+        subBoxGroup.userData = {
+            type: 'REAL_SUBSTATION_CARGO',
+            massTon: 3.6,
+            halfExtents: new THREE.Vector3(0.28, 0.56, 0.23),
             cornersLocal: [
-                new THREE.Vector3(2.4, 1.35, 0.9),
-                new THREE.Vector3(2.4, 1.35, -0.9),
-                new THREE.Vector3(-2.4, 1.35, -0.9),
-                new THREE.Vector3(-2.4, 1.35, 0.9)
+                new THREE.Vector3(0.22, 1.12, 0.16),
+                new THREE.Vector3(0.22, 1.12, -0.16),
+                new THREE.Vector3(-0.22, 1.12, -0.16),
+                new THREE.Vector3(-0.22, 1.12, 0.16)
             ],
-            hookTargetY: 1.45
+            hookTargetY: 1.25
         };
 
-        return group;
-    }
+        const subBoxRigGroup = new THREE.Group();
+        subBoxRigGroup.visible = false;
+        [
+            [0.20, 0.15], [0.20, -0.15], [-0.20, -0.15], [-0.20, 0.15]
+        ].forEach(([ex, ez]) => {
+            const eye = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.012, 8, 16), eyeMat);
+            eye.position.set(ex, 1.15, ez);
+            eye.rotation.x = Math.PI / 2;
+            subBoxRigGroup.add(eye);
+        });
+        subBoxGroup.add(subBoxRigGroup);
+        subBoxGroup.userData.rigGroup = subBoxRigGroup;
 
-    _buildHVACUnit() {
-        const group = new THREE.Group();
-
-        const hvacMat = new THREE.MeshStandardMaterial({ color: 0xd8dee6, roughness: 0.4, metalness: 0.45 });
-        const hvacGeo = new THREE.BoxGeometry(4.2, 2.0, 2.2);
-        const hvac = new THREE.Mesh(hvacGeo, hvacMat);
-        hvac.castShadow = true;
-        hvac.receiveShadow = true;
-        group.add(hvac);
-
-        // Rejillas circulares superiores de los ventiladores axiales
-        const grillMat = new THREE.MeshStandardMaterial({ color: 0x22272e, roughness: 0.7 });
-        [-1.1, 1.1].forEach(gx => {
-            const gGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.12, 16);
-            const g = new THREE.Mesh(gGeo, grillMat);
-            g.position.set(gx, 1.0 + 0.06, 0);
-            group.add(g);
+        loader.load('Assets3D/utility_box_01_1k.glb', (gltf) => {
+            const box = gltf.scene;
+            box.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+            subBoxGroup.add(box);
         });
 
-        const halfX = 1.9;
-        const halfZ = 0.95;
-        const topY = 1.0;
-
-        group.userData = {
-            type: 'HVAC_ROOF_UNIT',
-            massTon: 8.5,
-            halfExtents: new THREE.Vector3(2.1, 1.0, 1.1),
-            cornersLocal: [
-                new THREE.Vector3(halfX, topY + 0.15, halfZ),
-                new THREE.Vector3(halfX, topY + 0.15, -halfZ),
-                new THREE.Vector3(-halfX, topY + 0.15, -halfZ),
-                new THREE.Vector3(-halfX, topY + 0.15, halfZ)
-            ],
-            hookTargetY: topY + 0.25
-        };
-
-        return group;
-    }
-
-    _createCargoTemplates() {
-        // Creamos las cargas disponibles para las diferentes misiones
+        // =============================================================
+        // REGISTRO DE LAS 4 MISIONES REALISTAS
+        // =============================================================
         this.cargoList = [
             {
                 id: 1,
-                name: 'CONTENEDOR MAERSK 20FT (18 T)',
-                type: 'CONTAINER_20FT',
-                massTon: 18.0,
-                mesh: this._buildContainer20ft('#0e5f96', 'MAERSK 20FT'),
-                pickupPos: new THREE.Vector3(28, 0, 18),
-                dropTarget: { x: 38, y: 0.1, z: 24, radius: 3.8, name: 'BAHÍA DE DESCARGA EN SUELO' }
+                name: 'SUPERDEPORTIVO PORSCHE 911 GT3 RS (1.5 T)',
+                type: 'REAL_CAR_CARGO',
+                massTon: 1.5,
+                mesh: carGroup,
+                pickupPos: new THREE.Vector3(18.0, 0.0, 6.0),
+                dropTarget: {
+                    x: -16.5,
+                    y: 0.1,
+                    z: -12.0,
+                    radius: 3.8,
+                    name: 'BAHÍA VIP DE ENTREGA (PARKING OESTE)'
+                }
             },
             {
                 id: 2,
-                name: 'TUBERÍA DE HORMIGÓN ARMADO (14 T)',
-                type: 'CONCRETE_PIPE',
-                massTon: 14.0,
-                mesh: this._buildHeavyConcretePipe(),
-                pickupPos: new THREE.Vector3(20, 1.3, -15),
-                dropTarget: { x: 41, y: 10.1, z: -12, radius: 3.5, name: 'PLATAFORMA SOBRE CONTENEDORES' }
+                name: 'BARRERA NEW JERSEY DE HORMIGÓN (2.8 T)',
+                type: 'REAL_BARRIER_CARGO',
+                massTon: 2.8,
+                mesh: barrierGroup,
+                pickupPos: new THREE.Vector3(18.0, 0.0, -10.0),
+                dropTarget: {
+                    x: 24.0,
+                    y: 0.1,
+                    z: 10.0,
+                    radius: 3.0,
+                    name: 'PERÍMETRO DE VÍA (HUECO RESERVADO)'
+                }
             },
             {
                 id: 3,
-                name: 'CLIMATIZADOR INDUSTRIAL HVAC (8.5 T)',
-                type: 'HVAC_ROOF_UNIT',
-                massTon: 8.5,
-                mesh: this._buildHVACUnit(),
-                pickupPos: new THREE.Vector3(-25, 1.0, 25),
-                dropTarget: null // Se rellenará dinámicamente con la azotea
+                name: 'ARMARIO CLIMATIZADOR HVAC (4.5 T)',
+                type: 'REAL_HVAC_CARGO',
+                massTon: 4.5,
+                mesh: hvacGroup,
+                pickupPos: new THREE.Vector3(16.0, 0.0, -20.0),
+                dropTarget: {
+                    x: 28.0,
+                    y: 18.5,
+                    z: -20.0,
+                    radius: 3.8,
+                    name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (18.4 M)'
+                }
             },
             {
                 id: 4,
-                name: 'TRANSFORMADOR ELÉCTRICO 28T',
-                type: 'TRANSFORMER_HEAVY',
-                massTon: 28.0,
-                mesh: this._buildHeavyTransformer(),
-                pickupPos: new THREE.Vector3(32, 1.4, -22),
-                dropTarget: { x: 15, y: 0.1, z: 35, radius: 3.5, name: 'SUBESTACIÓN DE OBRA' }
+                name: 'ARMARIO DE SUBESTACIÓN ELÉCTRICA (3.6 T)',
+                type: 'REAL_SUBSTATION_CARGO',
+                massTon: 3.6,
+                mesh: subBoxGroup,
+                pickupPos: new THREE.Vector3(12.0, 0.0, -2.0),
+                dropTarget: {
+                    x: 15.0,
+                    y: 0.15,
+                    z: 33.5,
+                    radius: 3.2,
+                    name: 'LOSA DE SUBESTACIÓN ELÉCTRICA DE OBRA'
+                }
             }
         ];
 
-        // Añadir las mallas iniciales al escenario
-        this.cargoList.forEach((c) => {
+        this.cargoList.forEach(c => {
             const m = c.mesh;
             m.position.copy(c.pickupPos);
-            // Ajustar altura inicial al suelo
-            if (c.type === 'CONTAINER_20FT') m.position.y = 1.3;
-            else if (c.type === 'CONCRETE_PIPE') m.position.y = 1.3;
-            else if (c.type === 'HVAC_ROOF_UNIT') m.position.y = 1.0;
-            else if (c.type === 'TRANSFORMER_HEAVY') m.position.y = 1.4;
-
             this.scene.add(m);
         });
 
         this.activeCargo = this.cargoList[0];
     }
 
+    updateRiggingProximity(hookPos, isHooked) {
+        if (!hookPos) return;
+        this.cargoList.forEach(c => {
+            const rig = c.mesh.userData.rigGroup;
+            if (!rig) return;
+
+            if (isHooked && this.activeCargo === c) {
+                rig.visible = true;
+            } else {
+                const cargoPos = c.mesh.position;
+                const hookYTarget = cargoPos.y + (c.mesh.userData.hookTargetY || 1.25);
+                const dist = Math.hypot(hookPos.x - cargoPos.x, hookPos.y - hookYTarget, hookPos.z - cargoPos.z);
+                // El artefacto de izado solo aparece cuando el gancho está cerca (< 4.2m)
+                rig.visible = (dist < 4.2);
+            }
+        });
+    }
+
     setRooftopTarget(rooftopTarget) {
-        // Asignar el objetivo de la misión 3 (HVAC a azotea)
-        const hvacCargo = this.cargoList.find(c => c.type === 'HVAC_ROOF_UNIT');
-        if (hvacCargo) {
+        const hvacCargo = this.cargoList.find(c => c.type === 'REAL_HVAC_CARGO');
+        if (hvacCargo && rooftopTarget) {
             hvacCargo.dropTarget = {
                 x: rooftopTarget.x,
                 y: rooftopTarget.y + 0.1,
                 z: rooftopTarget.z,
                 radius: 3.8,
-                name: 'CUBIERTA DE NAVE LOGÍSTICA (11.2 M)'
+                name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (18.4 M)'
             };
         }
     }
@@ -339,7 +326,7 @@ export class CargoManager {
     getDistanceToHook(hookPos) {
         if (!this.activeCargo) return Infinity;
         const cargoPos = this.activeCargo.mesh.position;
-        const hookYTarget = cargoPos.y + (this.activeCargo.mesh.userData.hookTargetY || 1.2);
+        const hookYTarget = cargoPos.y + (this.activeCargo.mesh.userData.hookTargetY || 1.25);
         return Math.hypot(hookPos.x - cargoPos.x, hookPos.y - hookYTarget, hookPos.z - cargoPos.z);
     }
 }

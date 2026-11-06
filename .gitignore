@@ -4,3 +4,7 @@ CAD/
 *.blend1
 __pycache__/
 .vscode/
+
+*_4k*.glb
+*.png
+.tmp_*

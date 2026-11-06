@@ -12,7 +12,11 @@ import { HUDManager } from './ui/HUDManager.js';
 class SimulatorApp {
     constructor() {
         this.sceneManager = new SceneManager();
-        this.environment = new Environment(this.sceneManager.scene);
+        this.environment = new Environment(this.sceneManager.scene, () => {
+            if (this.cargoManager) {
+                this.cargoManager.setRooftopTarget(this.environment.rooftopTarget);
+            }
+        });
         this.cargoManager = new CargoManager(this.sceneManager.scene);
         this.cargoManager.setRooftopTarget(this.environment.rooftopTarget);
 
