@@ -4,8 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crane Simulator — Gemelo Digital 3D (Liebherr LTM 1110)</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Crane Simulator — Gemelo Digital 3D (Liebherr LTM 1110 + UH-60)</title>
+    <link rel="stylesheet" href="css/style.css?v=2.2">
 </head>
 
 <body>
@@ -16,27 +19,65 @@
     </header>
 
     <div class="dashboard">
-        <!-- Panel Izquierdo: Controles Físicos y Cinemáticos -->
+        <!-- Panel Izquierdo: Selector de Unidad y Controles Físicos / Cinemáticos -->
         <div class="panel">
-            <div class="control-group">
-                <label>Masa de Carga (Ton) <span class="val-badge" id="valMass">10.0</span></label>
-                <input type="range" id="m" min="0.5" max="50" step="0.5" value="10">
+            <div class="control-group vehicle-selector-card">
+                <label class="selector-title">UNIDAD ACTIVA</label>
+                <div class="vehicle-switch">
+                    <button class="veh-btn active" id="btnSelectCrane" onclick="selectVehicle('crane')">GRÚA LTM</button>
+                    <button class="veh-btn" id="btnSelectHeli" onclick="selectVehicle('helicopter')">UH-60 VIP</button>
+                </div>
             </div>
-            <div class="control-group">
-                <label>Velocidad Cabrestante (m/s) <span class="val-badge" id="valSpeed">1.0</span></label>
-                <input type="range" id="v" min="0" max="2.5" step="0.1" value="1.0">
+
+            <!-- Controles de la Grúa Liebherr LTM 1110 -->
+            <div id="craneControlsGroup" class="controls-stack">
+                <div class="control-group">
+                    <label>Masa de Carga (Ton) <span class="val-badge" id="valMass">10.0</span></label>
+                    <input type="range" id="m" min="0.5" max="50" step="0.5" value="10">
+                </div>
+                <div class="control-group">
+                    <label>Velocidad Cabrestante (m/s) <span class="val-badge" id="valSpeed">1.0</span></label>
+                    <input type="range" id="v" min="0" max="2.5" step="0.1" value="1.0">
+                </div>
+                <div class="control-group">
+                    <label>Rotación Cabina (°) <span class="val-badge" id="valRot">30</span></label>
+                    <input type="range" id="rot" min="-180" max="180" step="0.1" value="30">
+                </div>
+                <div class="control-group">
+                    <label>Extensión Pluma (m) <span class="val-badge" id="valExt">35</span></label>
+                    <input type="range" id="ext" min="10" max="60" step="0.1" value="35">
+                </div>
+                <div class="control-group">
+                    <label>Ángulo Pluma (°) <span class="val-badge" id="valAng">50</span></label>
+                    <input type="range" id="ang" min="10" max="85" step="0.1" value="50">
+                </div>
             </div>
-            <div class="control-group">
-                <label>Rotación Cabina (°) <span class="val-badge" id="valRot">30</span></label>
-                <input type="range" id="rot" min="-180" max="180" step="0.1" value="30">
-            </div>
-            <div class="control-group">
-                <label>Extensión Pluma (m) <span class="val-badge" id="valExt">35</span></label>
-                <input type="range" id="ext" min="10" max="60" step="0.1" value="35">
-            </div>
-            <div class="control-group">
-                <label>Ángulo Pluma (°) <span class="val-badge" id="valAng">50</span></label>
-                <input type="range" id="ang" min="10" max="85" step="0.1" value="50">
+
+            <!-- Controles de Vuelo UH-60L Blackhawk -->
+            <div id="heliControlsGroup" class="controls-stack" style="display: none;">
+                <div class="control-group">
+                    <label>Turbina &amp; Rotores <span class="val-badge" id="valHeliEngine" style="color:#3fb950;">ON</span></label>
+                    <button class="heli-action-btn active" id="btnHeliEngine" onclick="toggleHeliEngine()">MOTOR GE T700: ACTIVO</button>
+                </div>
+                <div class="control-group">
+                    <label>RPM Hélices (%) <span class="val-badge" id="valHeliRpm">100%</span></label>
+                    <input type="range" id="heliRpm" min="0" max="100" step="1" value="100">
+                </div>
+                <div class="control-group">
+                    <label>Altitud Colectivo (m) <span class="val-badge" id="valHeliAlt">0.2</span></label>
+                    <input type="range" id="heliAlt" min="0.2" max="85" step="0.2" value="0.2">
+                </div>
+                <div class="control-group">
+                    <label>Rumbo / Guiñada (°) <span class="val-badge" id="valHeliYaw">-30</span></label>
+                    <input type="range" id="heliYaw" min="-180" max="180" step="1" value="-30">
+                </div>
+                <div class="control-group heli-help-box">
+                    <div class="heli-help-title">MANDOS DE VUELO</div>
+                    <div class="heli-key-row"><span>W / S</span><strong>Subir / Bajar</strong></div>
+                    <div class="heli-key-row"><span>↑ / ↓</span><strong>Avance / Pitch</strong></div>
+                    <div class="heli-key-row"><span>← / →</span><strong>Viraje / Alabeo</strong></div>
+                    <div class="heli-key-row"><span>Q / A</span><strong>Guiñada Cola</strong></div>
+                </div>
             </div>
         </div>
 
@@ -75,7 +116,7 @@
             <div class="toast-success" id="missionToast">¡ENTREGA EXITOSA! +100 PTS</div>
             <div class="impact-flash" id="impactFlash"></div>
 
-            <!-- Display Digital de Cabina Liebherr LICCON -->
+            <!-- Display Digital de Cabina Liebherr LICCON / UH-60 -->
             <div class="cockpit-panel">
                 <!-- Selector de Transmisión -->
                 <div class="cockpit-group">
@@ -103,9 +144,9 @@
 
                 <div class="cockpit-divider"></div>
 
-                <!-- Tacómetro Diésel RPM -->
+                <!-- Tacómetro Diésel / Turbina RPM -->
                 <div class="cockpit-group">
-                    <span class="cockpit-sub">DIÉSEL RPM</span>
+                    <span class="cockpit-sub" id="cockpitRpmLabel">DIÉSEL RPM</span>
                     <div class="cockpit-main-val">
                         <span class="cockpit-digits rpm" id="cockpitRpm">700</span>
                         <span class="cockpit-unit">RPM</span>
@@ -117,9 +158,9 @@
 
                 <div class="cockpit-divider"></div>
 
-                <!-- Volante y Dirección -->
+                <!-- Volante y Dirección / Rumbo -->
                 <div class="cockpit-group">
-                    <span class="cockpit-sub">DIRECCIÓN</span>
+                    <span class="cockpit-sub" id="cockpitSteerLabel">DIRECCIÓN</span>
                     <div class="cockpit-steer-row">
                         <svg id="cockpitWheel" viewBox="0 0 40 40" class="cockpit-wheel-mini">
                             <circle cx="20" cy="20" r="17" stroke="#58a6ff" stroke-width="2.5" fill="none" opacity="0.85" />
@@ -140,7 +181,7 @@
         <!-- Panel Derecho: Telemetría y Curva LMI -->
         <div class="panel">
             <div class="telemetry-card">
-                <div class="card-title">Rendimiento Motor Diésel</div>
+                <div class="card-title" id="engineCardTitle">Rendimiento Motor Diésel</div>
                 <div class="gauges-container">
                     <div class="gauge-wrapper">
                         <div class="gauge" id="gaugeHP" style="--p: 0deg;">
@@ -174,7 +215,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <!-- Módulo Principal ES6 de la Aplicación -->
-    <script type="module" src="src/main.js"></script>
+    <script type="module" src="src/main.js?v=2.2"></script>
 </body>
 
 </html>

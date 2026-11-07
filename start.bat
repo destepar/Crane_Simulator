@@ -3,12 +3,11 @@ cd /d "%~dp0"
 title Servidor Local Crane Simulator 3D
 cls
 echo ====================================================================
-echo   CRANE SIMULATOR 3D (Liebherr LTM 1110) - SERVIDOR LOCAL
+echo   CRANE SIMULATOR 3D (Liebherr LTM 1110 + UH-60) - SERVIDOR LOCAL
 echo ====================================================================
 echo.
-echo   [AVISO] Los navegadores (Chrome/Edge) BLOQUEAN los modelos 3D y 
-echo   modulos JS si se abre 'index.html' directamente con doble clic.
-echo   Por eso DEBE abrirse a traves de este servidor (http://localhost:8888).
+echo   [AVISO] Servidor configurado con recarga en vivo (NO-CACHE) para
+echo   cargar siempre la ultima version de HTML, JS, CSS y Assets 3D.
 echo.
 echo   NO CIERRES esta ventana negra mientras uses el simulador.
 echo ====================================================================
@@ -37,20 +36,7 @@ if "%PYTHON_CMD%"=="" (
     exit /b 1
 )
 
-echo Iniciando servidor en puerto 8888...
-start http://localhost:8888/
-%PYTHON_CMD% -m http.server 8888
-
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [AVISO] Puerto 8888 ocupado, intentando puerto 8000...
-    start http://localhost:8000/
-    %PYTHON_CMD% -m http.server 8000
-    if %ERRORLEVEL% NEQ 0 (
-        echo.
-        echo [ERROR] No se pudo levantar el servidor en el puerto 8000 ni 8888.
-        pause
-    )
-)
+echo Iniciando servidor sin cache...
+%PYTHON_CMD% scripts/server_nocache.py 8888
 
 pause

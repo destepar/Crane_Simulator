@@ -424,11 +424,16 @@ async function runSimulatorTest(options = {}) {
         fs.writeFileSync(westPath, Buffer.from(ssWest.data, 'base64'));
         console.log(`[OK] Screenshot Sector Oeste guardado en: ${westPath}`);
 
-        // Vista directa al Helipuerto y Helicoptero
+        // Vista directa al Helipuerto y Helicoptero en vuelo con selector activo
         await pageCDP.send('Runtime.evaluate', {
-            expression: '(() => { const app = window.simulatorApp; if (app && app.sceneManager) { app.sceneManager.currentCameraMode = "custom"; app.sceneManager.camera.position.set(-22, 8, 26); app.sceneManager.controls.target.set(-22, 1.8, 42); app.sceneManager.controls.update(); } })()'
+            expression: '(() => { const app = window.simulatorApp; if (app) { app.selectVehicle("helicopter"); app.helicopterController.targetAltitude = 8.5; app.helicopterController.forwardSpeed = 12.0; } })()'
         });
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 900));
+        const heliStateRes = await pageCDP.send('Runtime.evaluate', {
+            expression: '(() => { const h = window.simulatorApp.helicopterController; return { loaded: h.isLoaded, rotorAngle: h.rotorAngle, alt: h.altitude, mainChildren: h.mainRotorPivot ? h.mainRotorPivot.children.length : 0, tailChildren: h.tailRotorPivot ? h.tailRotorPivot.children.length : 0 }; })()',
+            returnByValue: true
+        });
+        console.log('[TEST HELI] Estado Rotor y Vuelo:', heliStateRes.result?.value);
         const ssHeli = await pageCDP.send('Page.captureScreenshot', { format: 'png' });
         const heliPath = path.join(PROJECT_ROOT, 'heli_screenshot.png');
         fs.writeFileSync(heliPath, Buffer.from(ssHeli.data, 'base64'));

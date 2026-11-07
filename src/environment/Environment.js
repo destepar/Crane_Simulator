@@ -9,6 +9,8 @@ export class Environment {
         // Zona objetivo de azotea para izado HVAC calibrada al Edificio 001 (18.4m altura real)
         this.rooftopTarget = { x: 28, y: 18.4, z: -20, width: 12.6, depth: 23.1 };
         this.isAssetsLoaded = false;
+        this.heliController = null;
+        this.heliRawScene = null;
 
         this._buildGround();
         this._buildHelipadStructure();
@@ -160,7 +162,7 @@ export class Environment {
         this.obstacles.push({
             minX: -33.0, maxX: -11.0,
             minZ: 31.0, maxZ: 53.0,
-            height: 4.8,
+            height: 0.18,
             name: 'Zona Operativa Helipuerto VIP UH-60'
         });
     }
@@ -560,28 +562,23 @@ export class Environment {
             'Assets3D/Helicopter.glb',
             (gltf) => {
                 const heli = gltf.scene;
-                // Respeta al 100% los materiales, colores y texturas originales exportados desde Blender
-                heli.traverse(node => {
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
-                    }
-                });
+                this.heliRawScene = heli;
 
-                // Baliza estroboscópica roja superior en el fuselaje
-                const topBeacon = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.12, 8, 8),
-                    new THREE.MeshStandardMaterial({ color: 0xff0022, emissive: 0xff0022, emissiveIntensity: 1.8 })
-                );
-                topBeacon.position.set(0, 3.8, 0);
-                heli.add(topBeacon);
+                if (this.heliController) {
+                    this.heliController.setupModel(heli);
+                } else {
+                    heli.traverse(node => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                        }
+                    });
+                    heli.position.set(-22.0, 0.18, 42.0);
+                    heli.rotation.y = -Math.PI / 6;
+                    this.scene.add(heli);
+                }
 
-                // Situado sobre el helipuerto táctico
-                heli.position.set(-22.0, 0.18, 42.0);
-                heli.rotation.y = -Math.PI / 6;
-                this.scene.add(heli);
-
-                console.log("[ASSETS 3D REALES] Helicoptero Blackhawk integrado con materiales originales de Blender.");
+                console.log("[ASSETS 3D REALES] Helicoptero Blackhawk integrado con animacion de rotores y materiales originales.");
                 markLoaded();
             },
             undefined,
@@ -590,6 +587,13 @@ export class Environment {
                 markLoaded();
             }
         );
+    }
+
+    setHelicopterController(controller) {
+        this.heliController = controller;
+        if (this.heliRawScene && !controller.isLoaded) {
+            controller.setupModel(this.heliRawScene);
+        }
     }
 
     getGroundHeightAt(x, z) {

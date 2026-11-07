@@ -119,7 +119,24 @@ export class SceneManager {
             if (b) b.className = (m === mode) ? 'cam-btn active' : 'cam-btn';
         });
 
-        const { loadMesh, activeMission, cabinNode } = context;
+        const { loadMesh, activeMission, cabinNode, activeVehicle, heliGroup } = context;
+
+        if (activeVehicle === 'helicopter' && heliGroup && (mode === 'orbit' || mode === 'cab')) {
+            const hPos = heliGroup.position;
+            const yaw = heliGroup.rotation.y;
+            if (mode === 'cab') {
+                // Cámara de persecución táctica detrás de la cola (+X local) mirando hacia el frente (-X local)
+                const behindX = Math.cos(yaw) * 14.0;
+                const behindZ = -Math.sin(yaw) * 14.0;
+                this.camera.position.set(hPos.x + behindX, hPos.y + 5.8, hPos.z + behindZ);
+                this.controls.target.set(hPos.x - behindX * 0.5, hPos.y + 1.8, hPos.z - behindZ * 0.5);
+            } else {
+                this.camera.position.set(hPos.x - 16, hPos.y + 10, hPos.z + 18);
+                this.controls.target.set(hPos.x, hPos.y + 2.0, hPos.z);
+            }
+            this.controls.update();
+            return;
+        }
 
         if (mode === 'hook' && loadMesh) {
             this.camera.position.set(loadMesh.position.x - 14, loadMesh.position.y + 16, loadMesh.position.z + 18);
@@ -131,12 +148,31 @@ export class SceneManager {
             const cabPos = new THREE.Vector3();
             cabinNode.getWorldPosition(cabPos);
             this.camera.position.set(cabPos.x, cabPos.y + 4.5, cabPos.z);
+        } else if (mode === 'orbit' && context.cranePosition) {
+            const cPos = context.cranePosition;
+            this.camera.position.set(cPos.x - 24, 12, cPos.z + 28);
+            this.controls.target.set(cPos.x, 3.0, cPos.z);
         }
         this.controls.update();
     }
 
     updateCameraFollow(context = {}) {
-        const { loadMesh, activeMission, cranePosition, tipWorld } = context;
+        const { loadMesh, activeMission, cranePosition, tipWorld, activeVehicle, heliGroup } = context;
+
+        if (activeVehicle === 'helicopter' && heliGroup && (this.currentCameraMode === 'orbit' || this.currentCameraMode === 'cab')) {
+            const hPos = heliGroup.position;
+            if (this.currentCameraMode === 'cab') {
+                const yaw = heliGroup.rotation.y;
+                const aheadX = -Math.cos(yaw) * 6.0;
+                const aheadZ = Math.sin(yaw) * 6.0;
+                this.controls.target.lerp(new THREE.Vector3(hPos.x + aheadX, hPos.y + 1.8, hPos.z + aheadZ), 0.16);
+            } else {
+                const heliCenter = new THREE.Vector3(hPos.x, hPos.y + 2.0, hPos.z);
+                this.controls.target.lerp(heliCenter, 0.14);
+            }
+            this.controls.update();
+            return;
+        }
 
         if (this.currentCameraMode === 'hook' && loadMesh) {
             this.controls.target.lerp(loadMesh.position, 0.12);
