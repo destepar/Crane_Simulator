@@ -16,6 +16,14 @@ export class CraneModel {
         this.flecheNode = null;
         this.isLoaded = false;
 
+        // Vectores reutilizables y caché cinemática para evitar recalcular matrices cuando está estática
+        this._posBase = new THREE.Vector3();
+        this._posStem = new THREE.Vector3();
+        this._tipVec = new THREE.Vector3();
+        this._lastRotRad = null;
+        this._lastAngRad = null;
+        this._lastExt = null;
+
         this._loadModel(onProgress, onLoad, onError);
     }
 
@@ -129,42 +137,58 @@ export class CraneModel {
     updateKinematics(rotRad, angRad, ext, moveDist) {
         if (!this.isLoaded) return;
 
-        // 1. Rotación de cabina / superestructura
-        if (this.cabinNode) this.cabinNode.rotation.z = rotRad;
+        const isMovingWheels = (this.wheels.length > 0 && Math.abs(moveDist) > 0.0001);
+        const kinematicsChanged = (
+            this._lastRotRad !== rotRad ||
+            this._lastAngRad !== angRad ||
+            this._lastExt !== ext
+        );
 
-        // 2. Elevación / cabeceo de pluma principal
-        if (this.boomNode) this.boomNode.rotation.y = -angRad;
+        if (!kinematicsChanged && !isMovingWheels) {
+            return;
+        }
 
-        // 3. Cilindro hidráulico telescópico (lookAt mutuo)
-        if (this.cylBase && this.cylStem && this.boomNode && this.cabinNode) {
-            const posBase = new THREE.Vector3();
-            const posStem = new THREE.Vector3();
-            this.cylBase.getWorldPosition(posBase);
-            this.cylStem.getWorldPosition(posStem);
-            this.cylBase.lookAt(posStem);
-            this.cylStem.lookAt(posBase);
+        if (kinematicsChanged) {
+            this._lastRotRad = rotRad;
+            this._lastAngRad = angRad;
+            this._lastExt = ext;
+
+            // 1. Rotación de cabina / superestructura
+            if (this.cabinNode) this.cabinNode.rotation.z = rotRad;
+
+            // 2. Elevación / cabeceo de pluma principal
+            if (this.boomNode) this.boomNode.rotation.y = -angRad;
+
+            // 3. Cilindro hidráulico telescópico (lookAt mutuo sin alocación de vectores)
+            if (this.cylBase && this.cylStem && this.boomNode && this.cabinNode) {
+                this.cylBase.getWorldPosition(this._posBase);
+                this.cylStem.getWorldPosition(this._posStem);
+                this.cylBase.lookAt(this._posStem);
+                this.cylStem.lookAt(this._posBase);
+            }
+
+            // 5. Extensión telescópica de los 6 tramos
+            const extOffset = Math.max(0, ext - 10) * 0.1;
+            for (let i = 0; i < this.rigArms.length; i++) {
+                const arm = this.rigArms[i];
+                if (arm.userData.initialPos) {
+                    arm.position.x = arm.userData.initialPos.x - extOffset;
+                }
+            }
         }
 
         // 4. Giro de neumáticos con la distancia recorrida
-        if (this.wheels.length > 0 && Math.abs(moveDist) > 0.0001) {
+        if (isMovingWheels) {
             const wheelRotDelta = moveDist / 1.5;
-            this.wheels.forEach(wheel => {
-                wheel.rotation.z += wheelRotDelta;
-            });
-        }
-
-        // 5. Extensión telescópica de los 6 tramos
-        const extOffset = Math.max(0, ext - 10) * 0.1;
-        this.rigArms.forEach(arm => {
-            if (arm.userData.initialPos) {
-                arm.position.x = arm.userData.initialPos.x - extOffset;
+            for (let i = 0; i < this.wheels.length; i++) {
+                this.wheels[i].rotation.z += wheelRotDelta;
             }
-        });
+        }
 
         this.craneGroup.updateMatrixWorld(true);
     }
 
-    getTipWorldPosition(targetVec = new THREE.Vector3()) {
+    getTipWorldPosition(targetVec = this._tipVec) {
         if (this.flecheNode && this.flecheNode.userData.tipAnchor) {
             this.flecheNode.userData.tipAnchor.getWorldPosition(targetVec);
         } else {

@@ -8,17 +8,20 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Crane Simulator — Gemelo Digital 3D (Liebherr LTM 1110 + UH-60)</title>
-    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
     <header>
         <h1>SYS-TEL // LIEB-SIM 3D [TERMINAL LOGÍSTICO Y PORTUARIO 1:1]</h1>
-        <div class="status-indicator" id="mainStatus">INICIALIZANDO...</div>
+        <div class="header-actions">
+            <button class="reviewer-toggle-btn" id="btnToggleReviewer" title="Abrir Revisor y Auto-Test E2E Integrado">REVISOR // E2E</button>
+            <div class="status-indicator" id="mainStatus">INICIALIZANDO...</div>
+        </div>
     </header>
 
-    <div class="dashboard">
+    <div class="dashboard" id="mainDashboard">
         <!-- Panel Izquierdo: Selector de Unidad y Controles Físicos / Cinemáticos -->
         <div class="panel">
             <div class="control-group vehicle-selector-card">
@@ -51,6 +54,15 @@
                     <label>Ángulo Pluma (°) <span class="val-badge" id="valAng">50</span></label>
                     <input type="range" id="ang" min="10" max="85" step="0.1" value="50">
                 </div>
+                <div class="control-group heli-help-box">
+                    <div class="heli-help-title">MANDOS GRÚA LTM</div>
+                    <div class="heli-key-row"><span>Q / A</span><strong>Giro 360°</strong></div>
+                    <div class="heli-key-row"><span>W / S</span><strong>Ext. Pluma</strong></div>
+                    <div class="heli-key-row"><span>E / D</span><strong>Ángulo Pluma</strong></div>
+                    <div class="heli-key-row"><span>Z / X</span><strong>Subir/Bajar Cable</strong></div>
+                    <div class="heli-key-row"><span>↑↓←→</span><strong>Conducir Grúa</strong></div>
+                    <div class="heli-key-row"><span>ESPACIO</span><strong>Amarrar / Soltar</strong></div>
+                </div>
             </div>
 
             <!-- Controles de Vuelo UH-60L Blackhawk -->
@@ -77,28 +89,51 @@
                     <div class="heli-key-row"><span>↑ / ↓</span><strong>Avance / Pitch</strong></div>
                     <div class="heli-key-row"><span>← / →</span><strong>Viraje / Alabeo</strong></div>
                     <div class="heli-key-row"><span>Q / A</span><strong>Guiñada Cola</strong></div>
+                    <div class="heli-key-row"><span>ESPACIO</span><strong>Motor ON/OFF</strong></div>
                 </div>
             </div>
         </div>
 
         <!-- Visor 3D Central -->
         <div class="camera-view">
-            <div class="cam-overlay">
-                <div>CAM_01 // ONLINE <span id="fps" style="color: #3fb950; font-weight: bold; margin-left: 6px;">FPS: 60</span></div>
+            <!-- Dock Superior Izquierdo: Telemetría de Cámara + Selector de Modos (Teclas 1, 2, 3, 4) -->
+            <div class="top-left-hud-dock">
+                <div class="cam-overlay">
+                    <span>CAM_01 // ONLINE</span>
+                    <span id="fps" class="fps-badge">FPS: 60</span>
+                </div>
+                <div class="cam-mode-selector">
+                    <button class="cam-btn active" id="btnCam1" onclick="setCameraMode('orbit')">1: GRÚA</button>
+                    <button class="cam-btn" id="btnCam2" onclick="setCameraMode('hook')">2: GANCHO</button>
+                    <button class="cam-btn" id="btnCam3" onclick="setCameraMode('target')">3: ZONA</button>
+                    <button class="cam-btn" id="btnCam4" onclick="setCameraMode('cab')">4: CABINA</button>
+                </div>
+
+                <!-- Panel Revisor Integrado en Navegador (WebGL + Auto-Test E2E) -->
+                <div class="integrated-reviewer-panel" id="integratedReviewerPanel" style="display: none;">
+                    <div class="rev-header">
+                        <span class="rev-title">REVISOR INTEGRADO // WEBGL &amp; E2E</span>
+                        <span class="rev-badge" id="revTestBadge">LISTO</span>
+                    </div>
+                    <div class="rev-metrics-grid">
+                        <div><span>RENDER:</span> <strong id="revStatFps">60 FPS</strong></div>
+                        <div><span>DRAW CALLS:</span> <strong id="revStatDraws">--</strong></div>
+                        <div><span>GEOMETRÍA:</span> <strong id="revStatTris">--</strong></div>
+                        <div><span>MEMORIA GPU:</span> <strong id="revStatMem">--</strong></div>
+                    </div>
+                    <div class="rev-assets-line" id="revStatAssets">Assets: Inicializando...</div>
+                    <div class="rev-actions">
+                        <button class="rev-btn primary" id="btnRunAutoTest">▶ AUTO-TEST E2E</button>
+                        <button class="rev-btn" id="btnResetSim">↺ RESET</button>
+                    </div>
+                    <div class="rev-report-list" id="revReportList"></div>
+                </div>
             </div>
 
-            <!-- Selector de Modos de Cámara (Teclas 1, 2, 3, 4) -->
-            <div class="cam-mode-selector">
-                <button class="cam-btn active" id="btnCam1" onclick="setCameraMode('orbit')">1: GRÚA</button>
-                <button class="cam-btn" id="btnCam2" onclick="setCameraMode('hook')">2: GANCHO</button>
-                <button class="cam-btn" id="btnCam3" onclick="setCameraMode('target')">3: ZONA</button>
-                <button class="cam-btn" id="btnCam4" onclick="setCameraMode('cab')">4: CABINA</button>
-            </div>
-
-            <!-- HUD de Misión y Puntos -->
+            <!-- HUD de Misión y Puntos (Esquina Superior Derecha) -->
             <div class="mission-card">
                 <div class="mission-top-row">
-                    <span class="mission-tag" id="missionTag">MISIÓN [1/3]</span>
+                    <span class="mission-tag" id="missionTag">MISIÓN [1/4]</span>
                     <span class="mission-score" id="missionScore">0 PTS</span>
                 </div>
                 <div class="mission-title" id="missionTitle">BAHÍA DE CARGA EN SUELO</div>
@@ -106,21 +141,21 @@
                 <div class="mission-metrics">
                     <span>DIST: <strong id="missionDist">0.0 m</strong></span>
                     <span>ALT: <strong id="missionAlt">0.0 m</strong></span>
-                    <span>ESTADO: <strong id="missionSway">ESTABLE</strong></span>
+                    <span><strong id="missionSway">ESTABLE</strong></span>
                 </div>
                 <div class="mission-prog-track">
                     <div class="mission-prog-fill" id="missionProgress"></div>
                 </div>
             </div>
 
-            <div class="toast-success" id="missionToast">¡ENTREGA EXITOSA! +100 PTS</div>
+            <div class="toast-success" id="missionToast">¡ENTREGA EXITOSA! +250 PTS</div>
             <div class="impact-flash" id="impactFlash"></div>
 
             <!-- Display Digital de Cabina Liebherr LICCON / UH-60 -->
             <div class="cockpit-panel">
-                <!-- Selector de Transmisión -->
+                <!-- Selector de Transmisión / Modo de Vuelo -->
                 <div class="cockpit-group">
-                    <span class="cockpit-sub">MARCHA</span>
+                    <span class="cockpit-sub" id="cockpitGearLabel">MARCHA</span>
                     <div class="cockpit-gears">
                         <span class="gear-slot" id="badgeR">R</span>
                         <span class="gear-slot active gear-n" id="badgeN">N</span>
@@ -178,8 +213,8 @@
             <div id="canvas3DContainer"></div>
         </div>
 
-        <!-- Panel Derecho: Telemetría y Curva LMI -->
-        <div class="panel">
+        <!-- Panel Derecho: Telemetría y Curva LMI (Solo visible con Grúa LTM) -->
+        <div class="panel" id="rightTelemetryPanel">
             <div class="telemetry-card">
                 <div class="card-title" id="engineCardTitle">Rendimiento Motor Diésel</div>
                 <div class="gauges-container">
@@ -215,7 +250,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <!-- Módulo Principal ES6 de la Aplicación -->
-    <script type="module" src="src/main.js?v=2.2"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 
 </html>

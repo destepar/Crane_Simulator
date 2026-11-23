@@ -1,1153 +1,796 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap');
 
-
-
-        * {
-
-            box-sizing: border-box;
-
-            margin: 0;
-
-            padding: 0;
-
-        }
-
-
-
-        body {
-
-            font-family: 'Roboto Mono', monospace;
-
-            background-color: #050505;
-
-            color: #e0e0e0;
-
-            height: 100vh;
-
-            display: flex;
-
-            flex-direction: column;
-
-            overflow: hidden;
-
-        }
-
-
-
-        /* Top Header */
-
-        header {
-
-            background: #111;
-
-            padding: 10px 20px;
-
-            border-bottom: 2px solid #333;
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-        }
-
-
-
-        header h1 {
-
-            font-family: 'Orbitron', sans-serif;
-
-            color: #58a6ff;
-
-            font-size: 1.2rem;
-
-            letter-spacing: 2px;
-
-        }
-
-
-
-        .status-indicator {
-
-            padding: 5px 15px;
-
-            border-radius: 4px;
-
-            font-weight: bold;
-
-            background: #2ea043;
-
-            color: white;
-
-            text-transform: uppercase;
-
-        }
-
-
-
-        /* Main Grid Layout */
-
-        .dashboard {
-
-            display: grid;
-
-            grid-template-columns: 175px 1fr 185px;
-
-            flex-grow: 1;
-
-            min-height: 0;
-
-            height: calc(100vh - 52px);
-
-            gap: 2px;
-
-            background: #333;
-
-        }
-
-
-
-        .panel {
-
-            background: #0a0a0a;
-
-            padding: 5px;
-
-            display: flex;
-
-            flex-direction: column;
-
-            gap: 5px;
-
-            overflow-y: auto;
-
-        }
-
-
-
-        /* Controls Panel */
-
-        .control-group {
-
-            background: #161b22;
-
-            padding: 5px 7px;
-
-            border-radius: 8px;
-
-            border: 1px solid #222;
-
-        }
-
-
-
-        .control-group label {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            font-size: 0.66rem;
-
-            color: #8b949e;
-
-            margin-bottom: 4px;
-
-        }
-
-
-
-        .val-badge {
-
-            color: #58a6ff;
-
-            font-weight: bold;
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.70rem;
-
-        }
-
-
-
-        input[type=range] {
-
-            -webkit-appearance: none;
-
-            width: 100%;
-
-            background: transparent;
-
-        }
-
-
-
-        input[type=range]::-webkit-slider-thumb {
-
-            -webkit-appearance: none;
-
-            height: 13px;
-
-            width: 13px;
-
-            border-radius: 50%;
-
-            background: #58a6ff;
-
-            cursor: pointer;
-
-            margin-top: -5px;
-
-            box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
-
-        }
-
-
-
-        input[type=range]::-webkit-slider-runnable-track {
-
-            width: 100%;
-
-            height: 4px;
-
-            cursor: pointer;
-
-            background: #30363d;
-
-            border-radius: 2px;
-
-        }
-
-
-
-        /* Camera View 3D */
-
-        .camera-view {
-
-            position: relative;
-
-            background: #000;
-
-            overflow: hidden;
-
-        }
-
-
-
-        #canvas3DContainer {
-
-            width: 100%;
-
-            height: 100%;
-
-            display: block;
-
-        }
-
-
-
-        .cam-overlay {
-
-            position: absolute;
-
-            top: 15px;
-
-            left: 15px;
-
-            color: #58a6ff;
-
-            font-size: 0.8rem;
-
-            pointer-events: none;
-
-            text-shadow: 0 0 5px rgba(88, 166, 255, 0.5);
-
-            z-index: 10;
-
-            font-family: 'Orbitron', sans-serif;
-
-        }
-
-
-
-        .help-overlay {
-
-            position: absolute;
-
-            bottom: 15px;
-
-            left: 15px;
-
-            color: rgba(255, 255, 255, 0.4);
-
-            font-size: 0.7rem;
-
-            pointer-events: none;
-
-            z-index: 10;
-
-        }
-
-
-
-        /* Telemetry Panel */
-
-        .telemetry-card {
-
-            background: #161b22;
-
-            padding: 5px 7px;
-
-            border-radius: 8px;
-
-            border: 1px solid #222;
-
-        }
-
-
-
-        .card-title {
-
-            font-size: 0.65rem;
-
-            color: #8b949e;
-
-            text-transform: uppercase;
-
-            margin-bottom: 5px;
-
-            padding-bottom: 2px;
-
-            border-bottom: 1px solid #333;
-
-            padding-bottom: 5px;
-
-        }
-
-
-
-        /* Gauges */
-
-        .gauges-container {
-
-            display: flex;
-
-            justify-content: space-around;
-
-        }
-
-
-
-        .gauge-wrapper {
-
-            display: flex;
-
-            flex-direction: column;
-
-            align-items: center;
-
-            gap: 10px;
-
-        }
-
-
-
-        .gauge {
-
-            width: 58px;
-
-            height: 58px;
-
-            border-radius: 50%;
-
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-
-            position: relative;
-
-            background: conic-gradient(#3fb950 var(--p), #222 0deg);
-
-        }
-
-
-
-        .gauge::before {
-
-            content: "";
-
-            position: absolute;
-
-            width: 46px;
-
-            height: 46px;
-
-            background: #161b22;
-
-            border-radius: 50%;
-
-        }
-
-
-
-        .gauge-val {
-
-            position: relative;
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.82rem;
-
-            font-weight: bold;
-
-        }
-
-
-
-        /* Load Chart */
-
-        #loadChartCanvas {
-
-            width: 100%;
-
-            height: 120px;
-
-            background: #0d1117;
-
-            border: 1px solid #333;
-
-            border-radius: 4px;
-
-        }
-
-
-
-        /* Big Data */
-
-        .big-data {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 1.25rem;
-
-            color: #f6e05e;
-
-            text-align: center;
-
-            margin: 10px 0;
-
-        }
-
-
-
-        .warning-text {
-
-            color: #f85149;
-
-            text-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
-
-            animation: blink 1s infinite;
-
-        }
-
-
-
-        @keyframes blink {
-
-            50% {
-
-                opacity: 0.5;
-
-            }
-
-        }
-
-    
-
-        /* Selector de Modos de Cámara */
-
-        .cam-mode-selector {
-
-            position: absolute;
-
-            top: 14px;
-
-            left: 50%;
-
-            transform: translateX(-50%);
-
-            display: flex;
-
-            gap: 6px;
-
-            background: rgba(13, 17, 23, 0.9);
-
-            backdrop-filter: blur(8px);
-
-            border: 1px solid #30363d;
-
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-
-            border-radius: 8px;
-
-            padding: 4px 6px;
-
-            z-index: 15;
-
-            user-select: none;
-
-        }
-
-
-
-        .cam-btn {
-
-            background: #161b22;
-
-            border: 1px solid #21262d;
-
-            color: #8b949e;
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.68rem;
-
-            font-weight: bold;
-
-            padding: 5px 10px;
-
-            border-radius: 5px;
-
-            cursor: pointer;
-
-            transition: all 0.15s ease;
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 4px;
-
-        }
-
-
-
-        .cam-btn:hover {
-
-            color: #ffffff;
-
-            border-color: #58a6ff;
-
-            background: #21262d;
-
-        }
-
-
-
-        .cam-btn.active {
-
-            background: rgba(88, 166, 255, 0.22);
-
-            color: #58a6ff;
-
-            border-color: #58a6ff;
-
-            box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
-
-        }
-
-
-
-        /* Widget de Misión y Puntos de Entrega */
-
-        .mission-card {
-
-            position: absolute;
-
-            top: 14px;
-
-            right: 14px;
-
-            background: rgba(13, 17, 23, 0.92);
-
-            backdrop-filter: blur(10px);
-
-            border: 1px solid #30363d;
-
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-
-            border-radius: 10px;
-
-            padding: 10px 14px;
-
-            width: 250px;
-
-            z-index: 15;
-
-            pointer-events: none;
-
-            user-select: none;
-
-        }
-
-
-
-        .mission-top-row {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            border-bottom: 1px solid #21262d;
-
-            padding-bottom: 5px;
-
-            margin-bottom: 6px;
-
-        }
-
-
-
-        .mission-tag {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.7rem;
-
-            color: #58a6ff;
-
-            font-weight: bold;
-
-            letter-spacing: 1px;
-
-        }
-
-
-
-        .mission-score {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.95rem;
-
-            color: #f6e05e;
-
-            font-weight: bold;
-
-        }
-
-
-
-        .mission-title {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.78rem;
-
-            color: #ffffff;
-
-            font-weight: bold;
-
-            margin-bottom: 4px;
-
-        }
-
-
-
-        .mission-desc {
-
-            font-size: 0.68rem;
-
-            color: #8b949e;
-
-            line-height: 1.2;
-
-            margin-bottom: 8px;
-
-        }
-
-
-
-        .mission-metrics {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            font-size: 0.72rem;
-
-            color: #c9d1d9;
-
-            margin-bottom: 6px;
-
-        }
-
-
-
-        .mission-metrics strong {
-
-            color: #58a6ff;
-
-            font-family: 'Orbitron', sans-serif;
-
-        }
-
-
-
-        .mission-prog-track {
-
-            width: 100%;
-
-            height: 5px;
-
-            background: #161b22;
-
-            border-radius: 3px;
-
-            overflow: hidden;
-
-        }
-
-
-
-        .mission-prog-fill {
-
-            width: 0%;
-
-            height: 100%;
-
-            background: #3fb950;
-
-            box-shadow: 0 0 8px rgba(63, 185, 80, 0.7);
-
-            transition: width 0.15s ease-out;
-
-        }
-
-
-
-        /* Banner de Éxito / Misión Cumplida */
-
-        .toast-success {
-
-            position: absolute;
-
-            top: 80px;
-
-            left: 50%;
-
-            transform: translateX(-50%) translateY(-20px);
-
-            background: rgba(46, 160, 67, 0.95);
-
-            color: #ffffff;
-
-            border: 1px solid #3fb950;
-
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(63, 185, 80, 0.5);
-
-            border-radius: 8px;
-
-            padding: 10px 24px;
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 1.05rem;
-
-            font-weight: bold;
-
-            z-index: 20;
-
-            opacity: 0;
-
-            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-
-            pointer-events: none;
-
-            letter-spacing: 1px;
-
-        }
-
-
-
-        .toast-success.show {
-
-            opacity: 1;
-
-            transform: translateX(-50%) translateY(0);
-
-        }
-
-
-
-        /* Alerta de Impacto en Pantalla */
-
-        .impact-flash {
-
-            position: absolute;
-
-            top: 0; left: 0; right: 0; bottom: 0;
-
-            box-shadow: inset 0 0 60px rgba(248, 81, 73, 0);
-
-            pointer-events: none;
-
-            z-index: 12;
-
-            transition: box-shadow 0.1s ease-out;
-
-        }
-
-
-
-        .impact-flash.hit {
-
-            box-shadow: inset 0 0 80px rgba(248, 81, 73, 0.65);
-
-        }
-
-
-
-        /* Display Digital de Cabina Liebherr (LICCON Style - Rígido y Fijo) */
-
-        .cockpit-panel {
-
-            position: absolute;
-
-            bottom: 12px;
-
-            left: 50%;
-
-            transform: translateX(-50%);
-
-            width: calc(100% - 24px);
-
-            max-width: 440px;
-
-            box-sizing: border-box;
-
-            background: rgba(11, 15, 21, 0.94);
-
-            backdrop-filter: blur(12px);
-
-            border: 1px solid #30363d;
-
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-
-            border-radius: 10px;
-
-            padding: 6px 14px;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            z-index: 15;
-
-            pointer-events: none;
-
-            user-select: none;
-
-            font-variant-numeric: tabular-nums;
-
-        }
-
-
-
-        .cockpit-group {
-
-            display: flex;
-
-            flex-direction: column;
-
-            align-items: center;
-
-            gap: 2px;
-
-            min-width: 80px;
-
-            flex-shrink: 0;
-
-        }
-
-
-
-        .cockpit-sub {
-
-            font-size: 0.58rem;
-
-            color: #8b949e;
-
-            letter-spacing: 1px;
-
-            font-family: 'Roboto Mono', monospace;
-
-            text-transform: uppercase;
-
-        }
-
-
-
-        .cockpit-main-val {
-
-            display: flex;
-
-            align-items: baseline;
-
-            justify-content: center;
-
-            gap: 4px;
-
-            width: 100%;
-
-        }
-
-
-
-        .cockpit-digits {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 1.35rem;
-
-            font-weight: 700;
-
-            color: #58a6ff;
-
-            line-height: 1;
-
-            letter-spacing: 0.5px;
-
-            display: inline-block;
-
-            width: 36px;
-
-            text-align: right;
-
-            font-variant-numeric: tabular-nums;
-
-        }
-
-
-
-        .cockpit-digits.rpm {
-
-            color: #f6e05e;
-
-            font-size: 1.15rem;
-
-            width: 50px;
-
-        }
-
-
-
-        .cockpit-digits.steer {
-
-            font-size: 1.0rem;
-
-            color: #e0e0e0;
-
-            width: 40px;
-
-            text-align: right;
-
-        }
-
-
-
-        .cockpit-unit {
-
-            font-size: 0.62rem;
-
-            color: #6e7681;
-
-            font-family: 'Orbitron', sans-serif;
-
-            width: 28px;
-
-            text-align: left;
-
-        }
-
-
-
-        /* Barras horizontales de progreso LED */
-
-        .cockpit-bar-track {
-
-            width: 72px;
-
-            height: 4px;
-
-            background: #161b22;
-
-            border-radius: 2px;
-
-            overflow: hidden;
-
-            margin-top: 3px;
-
-        }
-
-
-
-        .cockpit-bar-fill {
-
-            width: 0%;
-
-            height: 100%;
-
-            background: #58a6ff;
-
-            box-shadow: 0 0 6px rgba(88, 166, 255, 0.6);
-
-            transition: width 0.08s ease-out;
-
-        }
-
-
-
-        .cockpit-bar-fill.rpm {
-
-            background: #f6e05e;
-
-            box-shadow: 0 0 6px rgba(246, 224, 94, 0.6);
-
-        }
-
-
-
-        /* Divisores verticales sutiles */
-
-        .cockpit-divider {
-
-            width: 1px;
-
-            height: 32px;
-
-            background: #21262d;
-
-            flex-shrink: 0;
-
-        }
-
-
-
-        /* Selector de marchas PRND */
-
-        .cockpit-gears {
-
-            display: flex;
-
-            gap: 4px;
-
-            background: #161b22;
-
-            padding: 3px 5px;
-
-            border-radius: 5px;
-
-            border: 1px solid #21262d;
-
-        }
-
-
-
-        .gear-slot {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.82rem;
-
-            font-weight: bold;
-
-            color: #484f58;
-
-            padding: 2px 7px;
-
-            border-radius: 3px;
-
-            transition: all 0.12s ease;
-
-        }
-
-
-
-        .gear-slot.active.gear-d {
-
-            background: rgba(46, 160, 67, 0.3);
-
-            color: #3fb950;
-
-            box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
-
-        }
-
-
-
-        .gear-slot.active.gear-n {
-
-            background: rgba(210, 153, 34, 0.3);
-
-            color: #d29922;
-
-            box-shadow: 0 0 8px rgba(210, 153, 34, 0.5);
-
-        }
-
-
-
-        .gear-slot.active.gear-r {
-
-            background: rgba(248, 81, 73, 0.3);
-
-            color: #f85149;
-
-            box-shadow: 0 0 8px rgba(248, 81, 73, 0.5);
-
-        }
-
-
-
-        /* Volante esquemático mini de dimensiones fijas */
-
-        .cockpit-steer-row {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            gap: 6px;
-
-            width: 76px;
-
-        }
-
-
-
-        .cockpit-wheel-mini {
-
-            width: 28px;
-
-            height: 28px;
-
-            flex-shrink: 0;
-
-            transition: transform 0.05s ease-out;
-
-        }
-
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto Mono', monospace;
+    background-color: #050505;
+    color: #e0e0e0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Top Header */
+header {
+    background: #111;
+    padding: 8px 16px;
+    border-bottom: 2px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-family: 'Orbitron', sans-serif;
+    color: #58a6ff;
+    font-size: 0.92rem;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.reviewer-toggle-btn {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #58a6ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.reviewer-toggle-btn:hover,
+.reviewer-toggle-btn.active {
+    background: rgba(88, 166, 255, 0.22);
+    border-color: #58a6ff;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+    color: #ffffff;
+}
+
+.status-indicator {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    background: #2ea043;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Main Grid Layout */
+.dashboard {
+    display: grid;
+    grid-template-columns: 206px 1fr 185px;
+    flex-grow: 1;
+    min-height: 0;
+    height: calc(100vh - 44px);
+    gap: 2px;
+    background: #333;
+}
+
+.dashboard.heli-mode {
+    grid-template-columns: 206px 1fr;
+}
+
+.panel {
+    background: #0a0a0a;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Controls Panel */
+.control-group {
+    background: #161b22;
+    padding: 5px 7px;
+    border-radius: 8px;
+    border: 1px solid #222;
+    flex-shrink: 0;
+}
+
+.control-group label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.62rem;
+    color: #8b949e;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    height: 15px;
+    line-height: 15px;
+    overflow: hidden;
+}
+
+.val-badge {
+    color: #58a6ff;
+    font-weight: bold;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    min-width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 13px;
+    width: 13px;
+    border-radius: 50%;
+    background: #58a6ff;
+    cursor: pointer;
+    margin-top: -5px;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: #30363d;
+    border-radius: 2px;
+}
+
+/* Camera View 3D */
+.camera-view {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+}
+
+#canvas3DContainer {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Dock Superior Izquierdo (Cámara + Botones 1..4 + Revisor Integrado) */
+.top-left-hud-dock {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    z-index: 16;
+    max-width: calc(100% - 285px);
+    pointer-events: none;
+}
+
+.cam-overlay {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(13, 17, 23, 0.88);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 3px 9px;
+    color: #58a6ff;
+    font-size: 0.72rem;
+    text-shadow: 0 0 5px rgba(88, 166, 255, 0.4);
+    font-family: 'Orbitron', sans-serif;
+    pointer-events: none;
+}
+
+.fps-badge {
+    color: #3fb950;
+    font-weight: bold;
+}
+
+/* Selector de Modos de Cámara */
+.cam-mode-selector {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid #30363d;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 4px 5px;
+    user-select: none;
+    pointer-events: auto;
+}
+
+.cam-btn {
+    background: #161b22;
+    border: 1px solid #21262d;
+    color: #8b949e;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+    font-weight: bold;
+    padding: 4px 7px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+.cam-btn:hover {
+    color: #ffffff;
+    border-color: #58a6ff;
+    background: #21262d;
+}
+
+.cam-btn.active {
+    background: rgba(88, 166, 255, 0.22);
+    color: #58a6ff;
+    border-color: #58a6ff;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
+
+/* Panel Revisor Integrado en Navegador (WebGL + Auto-Test E2E) */
+.integrated-reviewer-panel {
+    background: rgba(11, 15, 21, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #30363d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+    border-radius: 8px;
+    padding: 8px 10px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: auto;
+    font-size: 0.66rem;
+}
+
+.rev-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 4px;
+}
+
+.rev-title {
+    font-family: 'Orbitron', sans-serif;
+    color: #58a6ff;
+    font-weight: bold;
+    font-size: 0.64rem;
+}
+
+.rev-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.60rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #21262d;
+    color: #c9d1d9;
+}
+
+.rev-badge.running {
+    background: rgba(210, 153, 34, 0.25);
+    color: #f6e05e;
+    border: 1px solid #d29922;
+}
+
+.rev-badge.pass {
+    background: rgba(46, 160, 67, 0.25);
+    color: #3fb950;
+    border: 1px solid #3fb950;
+}
+
+.rev-badge.fail {
+    background: rgba(248, 81, 73, 0.25);
+    color: #f85149;
+    border: 1px solid #f85149;
+}
+
+.rev-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    background: #161b22;
+    padding: 5px 7px;
+    border-radius: 5px;
+    border: 1px solid #21262d;
+}
+
+.rev-metrics-grid span {
+    color: #8b949e;
+    font-size: 0.60rem;
+}
+
+.rev-metrics-grid strong {
+    color: #e6edf3;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+}
+
+.rev-assets-line {
+    color: #8b949e;
+    font-size: 0.62rem;
+    padding: 2px 4px;
+}
+
+.rev-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.rev-btn {
+    flex: 1;
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+    font-weight: bold;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rev-btn:hover {
+    border-color: #58a6ff;
+    color: #ffffff;
+}
+
+.rev-btn.primary {
+    background: rgba(46, 160, 67, 0.22);
+    border-color: #3fb950;
+    color: #3fb950;
+}
+
+.rev-btn.primary:hover {
+    background: rgba(46, 160, 67, 0.38);
+    color: #ffffff;
+}
+
+.rev-report-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 125px;
+    overflow-y: auto;
+}
+
+.rev-step-item {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.60rem;
+    background: #161b22;
+    border-left: 3px solid #58a6ff;
+}
+
+.rev-step-item.pass {
+    border-left-color: #3fb950;
+    color: #c9d1d9;
+}
+
+.rev-step-item.fail {
+    border-left-color: #f85149;
+    color: #ffa198;
+}
+
+/* Telemetry Panel */
+.telemetry-card {
+    background: #161b22;
+    padding: 5px 7px;
+    border-radius: 8px;
+    border: 1px solid #222;
+}
+
+.card-title {
+    font-size: 0.65rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+/* Gauges */
+.gauges-container {
+    display: flex;
+    justify-content: space-around;
+}
+
+.gauge-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.gauge {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: conic-gradient(#3fb950 var(--p), #222 0deg);
+}
+
+.gauge::before {
+    content: "";
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    background: #161b22;
+    border-radius: 50%;
+}
+
+.gauge-val {
+    position: relative;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.82rem;
+    font-weight: bold;
+}
+
+/* Load Chart */
+#loadChartCanvas {
+    width: 100%;
+    height: 120px;
+    background: #0d1117;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+/* Big Data */
+.big-data {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    color: #f6e05e;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.warning-text {
+    color: #f85149;
+    text-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Widget de Misión y Puntos de Entrega */
+.mission-card {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(13, 17, 23, 0.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid #30363d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    padding: 9px 12px;
+    width: 256px;
+    z-index: 15;
+    pointer-events: none;
+    user-select: none;
+}
+
+.mission-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 5px;
+    margin-bottom: 6px;
+}
+
+.mission-tag {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.68rem;
+    color: #58a6ff;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.mission-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.92rem;
+    color: #f6e05e;
+    font-weight: bold;
+}
+
+.mission-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.74rem;
+    color: #ffffff;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.mission-desc {
+    font-size: 0.66rem;
+    color: #8b949e;
+    line-height: 1.25;
+    margin-bottom: 8px;
+}
+
+.mission-metrics {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: #c9d1d9;
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+.mission-metrics span {
+    white-space: nowrap;
+}
+
+.mission-metrics strong {
+    color: #58a6ff;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.mission-prog-track {
+    width: 100%;
+    height: 5px;
+    background: #161b22;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.mission-prog-fill {
+    width: 0%;
+    height: 100%;
+    background: #3fb950;
+    box-shadow: 0 0 8px rgba(63, 185, 80, 0.7);
+    transition: width 0.15s ease-out;
+}
+
+/* Banner de Éxito / Misión Cumplida */
+.toast-success {
+    position: absolute;
+    bottom: 82px;
+    left: 50%;
+    transform: translateX(-50%) translateY(15px);
+    background: rgba(46, 160, 67, 0.95);
+    color: #ffffff;
+    border: 1px solid #3fb950;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(63, 185, 80, 0.5);
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.88rem;
+    font-weight: bold;
+    z-index: 20;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    pointer-events: none;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+}
+
+.toast-success.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Alerta de Impacto en Pantalla */
+.impact-flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    box-shadow: inset 0 0 60px rgba(248, 81, 73, 0);
+    pointer-events: none;
+    z-index: 12;
+    transition: box-shadow 0.1s ease-out;
+}
+
+.impact-flash.hit {
+    box-shadow: inset 0 0 80px rgba(248, 81, 73, 0.65);
+}
+
+/* Display Digital de Cabina Liebherr (LICCON Style - Rígido y Fijo) */
+.cockpit-panel {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 455px;
+    box-sizing: border-box;
+    background: rgba(11, 15, 21, 0.94);
+    backdrop-filter: blur(12px);
+    border: 1px solid #30363d;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 15;
+    pointer-events: none;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.cockpit-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.cockpit-sub {
+    font-size: 0.58rem;
+    color: #8b949e;
+    letter-spacing: 1px;
+    font-family: 'Roboto Mono', monospace;
+    text-transform: uppercase;
+}
+
+.cockpit-main-val {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.cockpit-digits {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #58a6ff;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.cockpit-digits.rpm {
+    color: #f6e05e;
+    font-size: 1.15rem;
+    width: 50px;
+}
+
+.cockpit-digits.steer {
+    font-size: 0.95rem;
+    color: #e0e0e0;
+    width: 48px;
+    text-align: right;
+}
+
+.cockpit-unit {
+    font-size: 0.62rem;
+    color: #6e7681;
+    font-family: 'Orbitron', sans-serif;
+    width: 28px;
+    text-align: left;
+}
+
+/* Barras horizontales de progreso LED */
+.cockpit-bar-track {
+    width: 72px;
+    height: 4px;
+    background: #161b22;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+.cockpit-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: #58a6ff;
+    box-shadow: 0 0 6px rgba(88, 166, 255, 0.6);
+    transition: width 0.08s ease-out;
+}
+
+.cockpit-bar-fill.rpm {
+    background: #f6e05e;
+    box-shadow: 0 0 6px rgba(246, 224, 94, 0.6);
+}
+
+/* Divisores verticales sutiles */
+.cockpit-divider {
+    width: 1px;
+    height: 32px;
+    background: #21262d;
+    flex-shrink: 0;
+}
+
+/* Selector de marchas PRND / Modo Vuelo */
+.cockpit-gears {
+    display: flex;
+    gap: 4px;
+    background: #161b22;
+    padding: 3px 5px;
+    border-radius: 5px;
+    border: 1px solid #21262d;
+}
+
+.gear-slot {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: #484f58;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: all 0.12s ease;
+}
+
+.gear-slot.active.gear-d {
+    background: rgba(46, 160, 67, 0.3);
+    color: #3fb950;
+    box-shadow: 0 0 8px rgba(63, 185, 80, 0.5);
+}
+
+.gear-slot.active.gear-n {
+    background: rgba(210, 153, 34, 0.3);
+    color: #d29922;
+    box-shadow: 0 0 8px rgba(210, 153, 34, 0.5);
+}
+
+.gear-slot.active.gear-r {
+    background: rgba(248, 81, 73, 0.3);
+    color: #f85149;
+    box-shadow: 0 0 8px rgba(248, 81, 73, 0.5);
+}
+
+/* Volante esquemático mini de dimensiones fijas */
+.cockpit-steer-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 84px;
+}
+
+.cockpit-wheel-mini {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    transition: transform 0.05s ease-out;
+}
 
 /* Selector de Unidad en Panel Izquierdo (Grúa / Helicóptero) */
 .vehicle-selector-card {
@@ -1243,7 +886,7 @@
 .heli-key-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.62rem;
+    font-size: 0.60rem;
     color: #8b949e;
 }
 
@@ -1254,7 +897,7 @@
     padding: 1px 4px;
     color: #58a6ff;
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.58rem;
+    font-size: 0.56rem;
 }
 
 .heli-key-row strong {

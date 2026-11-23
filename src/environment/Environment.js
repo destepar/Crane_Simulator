@@ -6,8 +6,8 @@ export class Environment {
         this.onAssetsLoaded = onAssetsLoaded;
         this.obstacles = [];
 
-        // Zona objetivo de azotea para izado HVAC calibrada al Edificio 001 (18.4m altura real)
-        this.rooftopTarget = { x: 28, y: 18.4, z: -20, width: 12.6, depth: 23.1 };
+        // Zona objetivo de azotea para izado HVAC calibrada a la losa real de azotea del Edificio 001 (12.15m; 18.4m era la punta de la antena)
+        this.rooftopTarget = { x: 28, y: 12.15, z: -20, width: 12.6, depth: 23.1 };
         this.isAssetsLoaded = false;
         this.heliController = null;
         this.heliRawScene = null;
@@ -15,7 +15,204 @@ export class Environment {
         this._buildGround();
         this._buildHelipadStructure();
         this._buildLuxuryShowcase();
+        this._buildUrbanDecorativeLife();
         this._loadReal3DAssets();
+    }
+
+    _createBuildingFacadeMaterial(palette) {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        // Fondo base arquitectónico (ladrillo / piedra / panel prefabricado)
+        ctx.fillStyle = palette.base;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Variación orgánica de bloques o ladrillos vistos
+        const rows = 16;
+        const cols = 8;
+        const rowH = 512 / rows;
+        const colW = 512 / cols;
+
+        for (let r = 0; r < rows; r++) {
+            const offset = (r % 2) * (colW * 0.5);
+            for (let col = -1; col <= cols; col++) {
+                const bx = col * colW + offset;
+                const by = r * rowH;
+                // Alternar sutilmente tonos de bloque
+                ctx.fillStyle = ((r + col) % 2 === 0) ? palette.alt1 : palette.alt2;
+                ctx.fillRect(bx + 2, by + 2, colW - 4, rowH - 4);
+            }
+        }
+
+        // Juntas horizontales de mortero / paneles arquitectónicos
+        ctx.strokeStyle = palette.mortar;
+        ctx.lineWidth = 2;
+        for (let r = 0; r <= rows; r++) {
+            const y = r * rowH;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(512, y);
+            ctx.stroke();
+        }
+
+        // Forjados de planta (cornisas horizontales de hormigón cada piso = 512px en V)
+        ctx.fillStyle = palette.trim;
+        ctx.fillRect(0, 0, 512, 34);
+        ctx.fillRect(0, 488, 512, 24);
+
+        // Sombra bajo cornisa para dar relieve 3D
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        ctx.fillRect(0, 34, 512, 10);
+
+        // Pilastras verticales arquitectónicas
+        ctx.fillStyle = palette.pilaster;
+        ctx.fillRect(0, 0, 22, 512);
+        ctx.fillRect(245, 0, 22, 512);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.anisotropy = 4;
+
+        return new THREE.MeshStandardMaterial({
+            map: tex,
+            bumpMap: tex,
+            bumpScale: 0.04,
+            roughness: palette.roughness || 0.72,
+            metalness: palette.metalness || 0.12
+        });
+    }
+
+    _createBuildingGlassMaterial(tintHex, warmGlowHex) {
+        const c = document.createElement('canvas');
+        c.width = 256;
+        c.height = 256;
+        const ctx = c.getContext('2d');
+
+        // Degradado de reflejo de cielo e interior arquitectónico
+        const grad = ctx.createLinearGradient(0, 0, 256, 256);
+        grad.addColorStop(0, tintHex);
+        grad.addColorStop(0.5, '#2b4c66');
+        grad.addColorStop(0.85, warmGlowHex);
+        grad.addColorStop(1, '#152536');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Perfiles de carpintería metálica y estores interiores sutiles
+        ctx.fillStyle = 'rgba(255, 248, 225, 0.14)';
+        ctx.fillRect(16, 18, 96, 85);
+        ctx.fillRect(140, 135, 96, 95);
+
+        ctx.strokeStyle = '#0d131a';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(0, 0, 256, 256);
+        ctx.beginPath();
+        ctx.moveTo(128, 0); ctx.lineTo(128, 256);
+        ctx.moveTo(0, 128); ctx.lineTo(256, 128);
+        ctx.stroke();
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        return new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.12,
+            metalness: 0.82
+        });
+    }
+
+    _applyArchitecturalBoxUVs(mesh) {
+        const geo = mesh.geometry;
+        if (!geo || !geo.attributes.position) return;
+        const pos = geo.attributes.position;
+        const norm = geo.attributes.normal;
+        const uvArray = new Float32Array(pos.count * 2);
+
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i);
+            const z = pos.getZ(i);
+            const nx = norm ? Math.abs(norm.getX(i)) : 0;
+            const ny = norm ? Math.abs(norm.getY(i)) : 0;
+            const nz = norm ? Math.abs(norm.getZ(i)) : 1;
+
+            let u, v;
+            if (ny > 0.6) {
+                // Azotea / superficies horizontales
+                u = x / 6.0;
+                v = z / 6.0;
+            } else if (nx > nz) {
+                // Fachadas Este / Oeste
+                u = z / 6.0;
+                v = y / 3.6;
+            } else {
+                // Fachadas Norte / Sur
+                u = x / 6.0;
+                v = y / 3.6;
+            }
+            uvArray[i * 2] = u;
+            uvArray[i * 2 + 1] = v;
+        }
+        geo.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
+    }
+
+    _buildUrbanDecorativeLife() {
+        // 1. Contenedores marítimos intermodales de colores vivos en la zona logística
+        const createContainerTex = (baseColor, stripeColor, labelText) => {
+            const c = document.createElement('canvas');
+            c.width = 512;
+            c.height = 256;
+            const ctx = c.getContext('2d');
+
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, 512, 256);
+
+            // Chapa trapezoidal corrugada vertical
+            for (let x = 0; x < 512; x += 16) {
+                ctx.fillStyle = (x % 32 === 0) ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.14)';
+                ctx.fillRect(x, 14, 8, 228);
+            }
+
+            // Marcos estructurales ISO y esquineros
+            ctx.strokeStyle = stripeColor;
+            ctx.lineWidth = 12;
+            ctx.strokeRect(4, 4, 504, 248);
+
+            // Banda y logotipo naviero
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.72)';
+            ctx.fillRect(60, 88, 260, 62);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 34px Arial, sans-serif';
+            ctx.fillText(labelText, 82, 130);
+
+            return new THREE.CanvasTexture(c);
+        };
+
+        const containerSpecs = [
+            { x: -24, y: 1.3, z: -34, rotY: 0, color: '#1b6ca8', stripe: '#58a6ff', label: 'MAERSK LOG' },
+            { x: -24, y: 3.9, z: -34, rotY: 0, color: '#d96b27', stripe: '#f5a623', label: 'HAPAG-LLOYD' },
+            { x: -24, y: 1.3, z: -37.2, rotY: 0, color: '#1f7a4c', stripe: '#3fb950', label: 'EVERGREEN' },
+            { x: 34, y: 1.3, z: 38, rotY: Math.PI / 2, color: '#a82828', stripe: '#ff6b6b', label: 'CMA CGM' },
+            { x: 34, y: 3.9, z: 38, rotY: Math.PI / 2, color: '#1b6ca8', stripe: '#58a6ff', label: 'LIEB-CARGO' }
+        ];
+
+        const contGeo = new THREE.BoxGeometry(6.1, 2.6, 2.45);
+        containerSpecs.forEach(cs => {
+            const mat = new THREE.MeshStandardMaterial({
+                map: createContainerTex(cs.color, cs.stripe, cs.label),
+                roughness: 0.55,
+                metalness: 0.35
+            });
+            const mesh = new THREE.Mesh(contGeo, mat);
+            mesh.position.set(cs.x, cs.y, cs.z);
+            mesh.rotation.y = cs.rotY;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+        });
     }
 
     _createLogisticsGroundTexture() {
@@ -214,41 +411,60 @@ export class Environment {
         };
 
         // =========================================================================
-        // 1. MANZANA URBANA REDISTRIBUIDA EN AMBOS LADOS (ESTE Y OESTE)
+        // 1. MANZANA URBANA CON TEXTURAS ARQUITECTÓNICAS Y PALETAS VIVAS (ESTE Y OESTE)
         // =========================================================================
         loader.load(
             'Assets3D/residential_buildings_set.glb',
             (gltf) => {
                 const root = gltf.scene;
 
-                const facadeMat = new THREE.MeshStandardMaterial({
-                    color: 0xd4cebd,
-                    roughness: 0.82,
-                    metalness: 0.08
-                });
-                const glassMat = new THREE.MeshPhysicalMaterial({
-                    color: 0x162c3d,
-                    roughness: 0.1,
-                    metalness: 0.85,
-                    transmission: 0.2,
-                    reflectivity: 0.95
-                });
+                // 5 Paletas arquitectónicas realistas con textura de ladrillo/piedra/forjados y relieve bump
+                const facadeMaterials = {
+                    terracotta: this._createBuildingFacadeMaterial({
+                        base: '#9e4737', alt1: '#ad5240', alt2: '#8c3d2e',
+                        mortar: '#cbbba8', trim: '#ded6c8', pilaster: '#dfd8cc', roughness: 0.78
+                    }),
+                    slate: this._createBuildingFacadeMaterial({
+                        base: '#394656', alt1: '#425163', alt2: '#313d4b',
+                        mortar: '#222a35', trim: '#9aa8b8', pilaster: '#55667a', roughness: 0.55, metalness: 0.25
+                    }),
+                    sandstone: this._createBuildingFacadeMaterial({
+                        base: '#c9ae86', alt1: '#d4ba94', alt2: '#bca078',
+                        mortar: '#99805c', trim: '#eee3d3', pilaster: '#dfd1bc', roughness: 0.74
+                    }),
+                    tealNordic: this._createBuildingFacadeMaterial({
+                        base: '#3b647d', alt1: '#45718c', alt2: '#33586e',
+                        mortar: '#274457', trim: '#d5e1eb', pilaster: '#abc0d1', roughness: 0.62, metalness: 0.18
+                    }),
+                    ochreAmber: this._createBuildingFacadeMaterial({
+                        base: '#c28346', alt1: '#cf8f50', alt2: '#b0743a',
+                        mortar: '#8c5a2b', trim: '#e8dccb', pilaster: '#d9c8b2', roughness: 0.75
+                    })
+                };
 
-                const setupBuilding = (name, x, z, rotY = 0, height = 20) => {
+                const glassMaterials = {
+                    skyBlue: this._createBuildingGlassMaterial('#1b3b5c', '#58a6ff'),
+                    warmAmber: this._createBuildingGlassMaterial('#1e3347', '#f6e05e'),
+                    emerald: this._createBuildingGlassMaterial('#163840', '#79c0ff')
+                };
+
+                const setupBuilding = (name, x, z, rotY = 0, height = 20, facadeKey = 'terracotta', glassKey = 'skyBlue') => {
                     const cleanName = name.split(' ').join('_');
                     const bld = root.getObjectByName(name) || root.getObjectByName(cleanName);
                     if (bld) {
+                        const fMat = facadeMaterials[facadeKey] || facadeMaterials.terracotta;
+                        const gMat = glassMaterials[glassKey] || glassMaterials.skyBlue;
+
                         bld.traverse((node) => {
                             node.visible = true;
                             if (node.isMesh) {
                                 node.castShadow = true;
                                 node.receiveShadow = true;
-                                if (node.material) {
-                                    if (node.material.name === 'glass') {
-                                        node.material = glassMat;
-                                    } else {
-                                        node.material = facadeMat;
-                                    }
+                                this._applyArchitecturalBoxUVs(node);
+                                if (node.material && node.material.name === 'glass') {
+                                    node.material = gMat;
+                                } else {
+                                    node.material = fMat;
                                 }
                             }
                         });
@@ -273,21 +489,30 @@ export class Environment {
                     return null;
                 };
 
-                // --- DISTRITO OESTE (Edificios en X negativo, enmarcando la avenida y obligando a maniobrar) ---
-                setupBuilding('Residential_Buildings_002', -34, -28, Math.PI / 2, 22.0);
-                setupBuilding('Residential_Buildings_004', -42, -4, 0, 36.4);
-                setupBuilding('Residential_Buildings_006', -38, 24, -Math.PI / 2, 47.2);
+                // --- DISTRITO OESTE (Alturas de forjado de azotea reales, descontando los 6.2m del pararrayos) ---
+                setupBuilding('Residential_Buildings_002', -34, -28, Math.PI / 2, 15.8, 'slate', 'skyBlue');
+                setupBuilding('Residential_Buildings_004', -42, -4, 0, 30.2, 'tealNordic', 'warmAmber');
+                setupBuilding('Residential_Buildings_006', -38, 24, -Math.PI / 2, 41.0, 'terracotta', 'warmAmber');
 
-                // --- DISTRITO ESTE (Edificios en X positivo, con azotea objetivo de la Misión 3) ---
-                setupBuilding('Residential_Buildings_001', 28, -20, 0, 18.4);
-                this.rooftopTarget = { x: 28, y: 18.4, z: -20, width: 12.6, depth: 23.1 };
+                // --- DISTRITO ESTE (Edificio 001 con forjado de azotea real en y = 12.15m para Misión 3) ---
+                setupBuilding('Residential_Buildings_001', 28, -20, 0, 12.15, 'terracotta', 'skyBlue');
+                this.rooftopTarget = { x: 28, y: 12.15, z: -20, width: 12.6, depth: 23.1 };
 
-                setupBuilding('Residential_Buildings_003', 48, -20, Math.PI, 29.2);
-                setupBuilding('Residential_Buildings_005', 32, 24, Math.PI / 2, 40.0);
-                setupBuilding('Residential_Buildings_007', 50, 52, 0, 68.8);
-                setupBuilding('Residential_Buildings_008', 65, 0, -Math.PI / 2, 72.4);
+                // Bancada técnica de hormigón apoyada directamente sobre el forjado real de la azotea (y = 12.12m)
+                const roofPad = new THREE.Mesh(
+                    new THREE.BoxGeometry(5.8, 0.14, 5.8),
+                    new THREE.MeshStandardMaterial({ color: 0x2b313a, roughness: 0.78, metalness: 0.22 })
+                );
+                roofPad.position.set(28, 12.14, -20);
+                roofPad.receiveShadow = true;
+                this.scene.add(roofPad);
 
-                console.log("[ASSETS 3D REALES] Manzana urbana distribuida equitativamente a ambos lados (Este y Oeste).");
+                setupBuilding('Residential_Buildings_003', 48, -20, Math.PI, 23.0, 'sandstone', 'warmAmber');
+                setupBuilding('Residential_Buildings_005', 32, 24, Math.PI / 2, 33.8, 'ochreAmber', 'emerald');
+                setupBuilding('Residential_Buildings_007', 50, 52, 0, 62.6, 'slate', 'skyBlue');
+                setupBuilding('Residential_Buildings_008', 65, 0, -Math.PI / 2, 66.2, 'sandstone', 'emerald');
+
+                console.log("[ASSETS 3D REALES] Manzana urbana texturizada con 5 estilos arquitectonicos y acristalamiento reflectante.");
                 markLoaded();
             },
             undefined,
@@ -532,13 +757,29 @@ export class Environment {
             'Assets3D/Lambo.glb',
             (gltf) => {
                 const lambo = gltf.scene;
-                // Respeta al 100% los materiales, colores y texturas originales exportados desde Blender
+                // Respeta al 100% los materiales originales; optimizamos el shadow pass evitando
+                // rasterizar 805k triángulos decorativos en el shadow map y usando sombra de contacto suave
                 lambo.traverse(node => {
                     if (node.isMesh) {
-                        node.castShadow = true;
+                        node.castShadow = false;
                         node.receiveShadow = true;
                     }
                 });
+
+                // Sombra de contacto realista sobre el podio VIP
+                const contactShadow = new THREE.Mesh(
+                    new THREE.PlaneGeometry(4.6, 2.2),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x05070a,
+                        transparent: true,
+                        opacity: 0.65,
+                        depthWrite: false
+                    })
+                );
+                contactShadow.rotation.x = -Math.PI / 2;
+                contactShadow.rotation.z = Math.PI / 4;
+                contactShadow.position.set(-18.0, 0.255, 6.0);
+                this.scene.add(contactShadow);
 
                 // Exhibido en el podio VIP con orientación diagonal atractiva
                 lambo.position.set(-18.0, 0.25, 6.0);

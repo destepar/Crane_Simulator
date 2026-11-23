@@ -5,6 +5,11 @@ export class SceneManager {
         this.container = document.getElementById(containerId);
         this.currentCameraMode = 'orbit'; // 'orbit', 'hook', 'target', 'cab'
 
+        // Vectores reutilizables para seguimiento de cámara sin presión al GC
+        this._tmpTarget = new THREE.Vector3();
+        this._tmpCamDesired = new THREE.Vector3();
+        this._tmpCabPos = new THREE.Vector3();
+
         this._initScene();
         this._initCamera();
         this._initRenderer();
@@ -29,6 +34,7 @@ export class SceneManager {
 
     _initRenderer() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -73,6 +79,12 @@ export class SceneManager {
 
         this.envTexture = pmremGen.fromScene(envScene).texture;
         this.scene.environment = this.envTexture;
+
+        // Liberar recursos temporales de generación PMREM de la GPU
+        pmremGen.dispose();
+        skyDomeGeo.dispose();
+        skyDomeMat.dispose();
+        skyDomeTex.dispose();
     }
 
     _initLights() {
@@ -83,15 +95,15 @@ export class SceneManager {
         this.dirLight = new THREE.DirectionalLight(0xfff8ee, 2.65);
         this.dirLight.position.set(60, 90, 45);
         this.dirLight.castShadow = true;
-        this.dirLight.shadow.mapSize.width = 4096;
-        this.dirLight.shadow.mapSize.height = 4096;
+        this.dirLight.shadow.mapSize.width = 2048;
+        this.dirLight.shadow.mapSize.height = 2048;
         this.dirLight.shadow.camera.near = 5;
-        this.dirLight.shadow.camera.far = 250;
-        this.dirLight.shadow.camera.left = -50;
-        this.dirLight.shadow.camera.right = 50;
-        this.dirLight.shadow.camera.top = 50;
-        this.dirLight.shadow.camera.bottom = -50;
-        this.dirLight.shadow.bias = -0.0001;
+        this.dirLight.shadow.camera.far = 230;
+        this.dirLight.shadow.camera.left = -52;
+        this.dirLight.shadow.camera.right = 52;
+        this.dirLight.shadow.camera.top = 52;
+        this.dirLight.shadow.camera.bottom = -52;
+        this.dirLight.shadow.bias = -0.00015;
         this.dirLight.shadow.normalBias = 0.02;
         this.scene.add(this.dirLight);
 
@@ -101,13 +113,17 @@ export class SceneManager {
     }
 
     _initEvents() {
-        window.addEventListener('resize', () => {
-            const w = this.container.clientWidth;
-            const h = this.container.clientHeight;
-            this.camera.aspect = w / h;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(w, h);
-        });
+        window.addEventListener('resize', () => this.handleResize());
+    }
+
+    handleResize() {
+        if (!this.container || !this.renderer || !this.camera) return;
+        const w = this.container.clientWidth;
+        const h = this.container.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
     }
 
     setCameraMode(mode, context = {}) {
@@ -126,9 +142,9 @@ export class SceneManager {
             const yaw = heliGroup.rotation.y;
             if (mode === 'cab') {
                 // Cámara de persecución táctica detrás de la cola (+X local) mirando hacia el frente (-X local)
-                const behindX = Math.cos(yaw) * 14.0;
-                const behindZ = -Math.sin(yaw) * 14.0;
-                this.camera.position.set(hPos.x + behindX, hPos.y + 5.8, hPos.z + behindZ);
+                const behindX = Math.cos(yaw) * 11.5;
+                const behindZ = -Math.sin(yaw) * 11.5;
+                this.camera.position.set(hPos.x + behindX, hPos.y + 4.8, hPos.z + behindZ);
                 this.controls.target.set(hPos.x - behindX * 0.5, hPos.y + 1.8, hPos.z - behindZ * 0.5);
             } else {
                 this.camera.position.set(hPos.x - 16, hPos.y + 10, hPos.z + 18);
@@ -145,9 +161,8 @@ export class SceneManager {
             this.camera.position.set(activeMission.x - 18, activeMission.y + 12, activeMission.z + 20);
             this.controls.target.set(activeMission.x, activeMission.y + 1.0, activeMission.z);
         } else if (mode === 'cab' && cabinNode) {
-            const cabPos = new THREE.Vector3();
-            cabinNode.getWorldPosition(cabPos);
-            this.camera.position.set(cabPos.x, cabPos.y + 4.5, cabPos.z);
+            cabinNode.getWorldPosition(this._tmpCabPos);
+            this.camera.position.set(this._tmpCabPos.x, this._tmpCabPos.y + 4.5, this._tmpCabPos.z);
         } else if (mode === 'orbit' && context.cranePosition) {
             const cPos = context.cranePosition;
             this.camera.position.set(cPos.x - 24, 12, cPos.z + 28);
@@ -163,12 +178,15 @@ export class SceneManager {
             const hPos = heliGroup.position;
             if (this.currentCameraMode === 'cab') {
                 const yaw = heliGroup.rotation.y;
-                const aheadX = -Math.cos(yaw) * 6.0;
-                const aheadZ = Math.sin(yaw) * 6.0;
-                this.controls.target.lerp(new THREE.Vector3(hPos.x + aheadX, hPos.y + 1.8, hPos.z + aheadZ), 0.16);
+                const behindX = Math.cos(yaw) * 11.5;
+                const behindZ = -Math.sin(yaw) * 11.5;
+                this._tmpCamDesired.set(hPos.x + behindX, hPos.y + 4.8, hPos.z + behindZ);
+                this.camera.position.lerp(this._tmpCamDesired, 0.14);
+                this._tmpTarget.set(hPos.x - behindX * 0.55, hPos.y + 1.8, hPos.z - behindZ * 0.55);
+                this.controls.target.lerp(this._tmpTarget, 0.18);
             } else {
-                const heliCenter = new THREE.Vector3(hPos.x, hPos.y + 2.0, hPos.z);
-                this.controls.target.lerp(heliCenter, 0.14);
+                this._tmpTarget.set(hPos.x, hPos.y + 2.0, hPos.z);
+                this.controls.target.lerp(this._tmpTarget, 0.14);
             }
             this.controls.update();
             return;
@@ -177,13 +195,14 @@ export class SceneManager {
         if (this.currentCameraMode === 'hook' && loadMesh) {
             this.controls.target.lerp(loadMesh.position, 0.12);
         } else if (this.currentCameraMode === 'target' && activeMission) {
-            const targetCenter = new THREE.Vector3(activeMission.x, activeMission.y + 1.2, activeMission.z);
-            this.controls.target.lerp(targetCenter, 0.1);
+            this._tmpTarget.set(activeMission.x, activeMission.y + 1.2, activeMission.z);
+            this.controls.target.lerp(this._tmpTarget, 0.1);
         } else if (this.currentCameraMode === 'cab' && tipWorld) {
-            this.controls.target.lerp(new THREE.Vector3(tipWorld.x, tipWorld.y * 0.65, tipWorld.z), 0.1);
+            this._tmpTarget.set(tipWorld.x, tipWorld.y * 0.65, tipWorld.z);
+            this.controls.target.lerp(this._tmpTarget, 0.1);
         } else if (cranePosition) {
-            const craneCenter = new THREE.Vector3(cranePosition.x, 12, cranePosition.z);
-            this.controls.target.lerp(craneCenter, 0.08);
+            this._tmpTarget.set(cranePosition.x, 12, cranePosition.z);
+            this.controls.target.lerp(this._tmpTarget, 0.08);
         }
         this.controls.update();
     }

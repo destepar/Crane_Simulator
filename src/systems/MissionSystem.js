@@ -14,6 +14,19 @@ export class MissionSystem {
         this.promptText = '';
         this.canPerformAction = false;
 
+        // Cachear referencias DOM para evitar consultas por frame
+        this.dom = {
+            dist: document.getElementById('missionDist'),
+            alt: document.getElementById('missionAlt'),
+            sway: document.getElementById('missionSway'),
+            prog: document.getElementById('missionProgress'),
+            tag: document.getElementById('missionTag'),
+            title: document.getElementById('missionTitle'),
+            desc: document.getElementById('missionDesc'),
+            toast: document.getElementById('missionToast'),
+            score: document.getElementById('missionScore')
+        };
+
         this._buildVisualBeacon();
     }
 
@@ -22,29 +35,29 @@ export class MissionSystem {
         c.width = 512; c.height = 512;
         const ctx = c.getContext('2d');
 
-        ctx.fillStyle = '#0f141c';
+        ctx.fillStyle = '#0d1117';
         ctx.fillRect(0, 0, 512, 512);
 
-        ctx.fillStyle = '#ff2233';
+        ctx.fillStyle = '#1f6feb';
         ctx.beginPath(); ctx.arc(256, 256, 240, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#0d1117';
         ctx.beginPath(); ctx.arc(256, 256, 185, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#ff2233';
-        ctx.beginPath(); ctx.arc(256, 256, 130, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#58a6ff';
+        ctx.beginPath(); ctx.arc(256, 256, 132, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(256, 256, 75, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#0d1117';
+        ctx.beginPath(); ctx.arc(256, 256, 78, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#ff0022';
-        ctx.beginPath(); ctx.arc(256, 256, 30, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#79c0ff';
+        ctx.beginPath(); ctx.arc(256, 256, 34, 0, Math.PI * 2); ctx.fill();
 
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.lineWidth = 10;
+        ctx.strokeStyle = 'rgba(88, 166, 255, 0.55)';
+        ctx.lineWidth = 8;
         ctx.beginPath();
-        ctx.moveTo(256, 20); ctx.lineTo(256, 492);
-        ctx.moveTo(20, 256); ctx.lineTo(492, 256);
+        ctx.moveTo(256, 18); ctx.lineTo(256, 494);
+        ctx.moveTo(18, 256); ctx.lineTo(494, 256);
         ctx.stroke();
 
         return new THREE.CanvasTexture(c);
@@ -55,13 +68,13 @@ export class MissionSystem {
 
         this.beaconGroup = new THREE.Group();
 
-        // 1. Diana reflectante
+        // 1. Diana reflectante en azul de interfaz (#58a6ff)
         this.targetPad = new THREE.Mesh(
             new THREE.CircleGeometry(3.5, 32),
             new THREE.MeshStandardMaterial({
                 map: targetTex,
                 roughness: 0.3,
-                metalness: 0.1,
+                metalness: 0.15,
                 side: THREE.DoubleSide
             })
         );
@@ -72,21 +85,21 @@ export class MissionSystem {
 
         this.neonRing = new THREE.Mesh(
             new THREE.RingGeometry(3.4, 3.9, 32),
-            new THREE.MeshBasicMaterial({ color: 0xff3344, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+            new THREE.MeshBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.88, side: THREE.DoubleSide })
         );
         this.neonRing.rotation.x = -Math.PI / 2;
         this.neonRing.position.y = 0.08;
         this.beaconGroup.add(this.neonRing);
 
-        // 2. Flecha 3D flotante
+        // 2. Flecha 3D flotante en azul interfaz (#58a6ff / #1f6feb)
         this.arrowGroup = new THREE.Group();
         this.arrowGroup.position.y = 5.5;
 
         const coneGeo = new THREE.ConeGeometry(1.6, 3.2, 16);
         const arrowMat = new THREE.MeshStandardMaterial({
-            color: 0xff1e38,
-            emissive: 0xff0028,
-            emissiveIntensity: 0.85,
+            color: 0x58a6ff,
+            emissive: 0x1f6feb,
+            emissiveIntensity: 0.95,
             roughness: 0.2,
             metalness: 0.3
         });
@@ -103,7 +116,7 @@ export class MissionSystem {
 
         this.haloMesh = new THREE.Mesh(
             new THREE.TorusGeometry(2.2, 0.12, 12, 24),
-            new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 })
+            new THREE.MeshBasicMaterial({ color: 0x79c0ff, transparent: true, opacity: 0.8 })
         );
         this.haloMesh.rotation.x = Math.PI / 2;
         this.haloMesh.position.y = 3.6;
@@ -111,10 +124,10 @@ export class MissionSystem {
 
         this.beaconGroup.add(this.arrowGroup);
 
-        // 3. Haz de luz vertical
+        // 3. Haz de luz vertical en azul interfaz (#58a6ff)
         const beamGeo = new THREE.CylinderGeometry(3.0, 3.5, 75, 16, 1, true);
         const beamMat = new THREE.MeshBasicMaterial({
-            color: 0xff2244,
+            color: 0x58a6ff,
             transparent: true,
             opacity: 0.16,
             side: THREE.DoubleSide,
@@ -153,37 +166,39 @@ export class MissionSystem {
         }
     }
 
-    handleAction(winchRigging) {
+    handleAction(winchRigging, tipWorld = null) {
         const activeCargo = this.cargoManager.getActiveCargo();
         if (!activeCargo) return;
 
         if (this.missionStep === 'PICKUP' && this.canPerformAction) {
-            // Enganchar carga
-            winchRigging.attach(activeCargo);
+            // Enganchar carga sincronizando con la punta de pluma para evitar salto vertical
+            winchRigging.attach(activeCargo, tipWorld);
             this.missionStep = 'DELIVERY';
             this.canPerformAction = false;
 
-            const toast = document.getElementById('missionToast');
+            const toast = this.dom.toast || document.getElementById('missionToast');
             if (toast) {
                 toast.innerText = `¡CARGA AMARRADA! ${activeCargo.name}`;
                 toast.className = 'toast-success show';
                 setTimeout(() => { if (toast) toast.className = 'toast-success'; }, 2400);
             }
         } else if (this.missionStep === 'DELIVERY' && this.canPerformAction) {
-            // Depositar carga con éxito
-            winchRigging.detach();
+            // Depositar carga con éxito sobre la superficie real (suelo o azotea 12.15m)
+            const drop = activeCargo.dropTarget;
+            const surfaceY = drop && drop.y >= 11.5 ? 12.15 : (drop && drop.y >= 0.14 ? 0.15 : 0.0);
+            winchRigging.detach(surfaceY);
             this.totalScore += 250;
             this.missionStep = 'PICKUP';
             this.canPerformAction = false;
 
-            const toast = document.getElementById('missionToast');
+            const toast = this.dom.toast || document.getElementById('missionToast');
             if (toast) {
                 toast.innerText = `¡ENTREGA EXITOSA! +250 PTS`;
                 toast.className = 'toast-success show';
                 setTimeout(() => { if (toast) toast.className = 'toast-success'; }, 2600);
             }
 
-            const elScore = document.getElementById('missionScore');
+            const elScore = this.dom.score || document.getElementById('missionScore');
             if (elScore) elScore.innerText = `${this.totalScore} PTS`;
 
             // Avanzar a la siguiente carga disponible
@@ -247,14 +262,14 @@ export class MissionSystem {
             }
         }
 
-        // Actualizar HUD de misión
-        const elDist = document.getElementById('missionDist');
-        const elAlt = document.getElementById('missionAlt');
-        const elSway = document.getElementById('missionSway');
-        const elProg = document.getElementById('missionProgress');
-        const elTag = document.getElementById('missionTag');
-        const elTitle = document.getElementById('missionTitle');
-        const elDesc = document.getElementById('missionDesc');
+        // Actualizar HUD de misión (usando referencias DOM cacheadas)
+        const elDist = this.dom.dist;
+        const elAlt = this.dom.alt;
+        const elSway = this.dom.sway;
+        const elProg = this.dom.prog;
+        const elTag = this.dom.tag;
+        const elTitle = this.dom.title;
+        const elDesc = this.dom.desc;
 
         if (elTag) elTag.innerText = `MISIÓN [${this.currentMissionIndex + 1}/${this.cargoManager.cargoList.length}] — ${this.missionStep === 'PICKUP' ? '1. RECOGIDA' : '2. DEPÓSITO'}`;
         if (elTitle) elTitle.innerText = this.missionStep === 'PICKUP' ? `RECOGER: ${activeCargo.name}` : currentTarget.name;

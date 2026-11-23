@@ -67,7 +67,8 @@ export class HelicopterController {
         const meshesToProcess = [];
         gltfScene.traverse((node) => {
             if (node.isMesh) {
-                node.castShadow = true;
+                // Evitar rasterizar 627k triángulos en el shadow map cada frame; usamos sombra de contacto dinámica
+                node.castShadow = false;
                 node.receiveShadow = true;
                 meshesToProcess.push(node);
             }
@@ -112,25 +113,33 @@ export class HelicopterController {
                 const IndexArrayType = indices instanceof Uint32Array ? Uint32Array : Uint16Array;
                 geo.setIndex(new THREE.BufferAttribute(new IndexArrayType(fuselageIdx), 1));
 
+                // Compartir BufferAttributes de vértices sin clonar 776k vértices en RAM/VRAM
+                const shareGeometryAttributes = (sourceGeo, indexList) => {
+                    const sharedGeo = new THREE.BufferGeometry();
+                    for (const attrName in sourceGeo.attributes) {
+                        sharedGeo.setAttribute(attrName, sourceGeo.attributes[attrName]);
+                    }
+                    sharedGeo.setIndex(new THREE.BufferAttribute(new IndexArrayType(indexList), 1));
+                    return sharedGeo;
+                };
+
                 // Crear malla del Rotor Principal
                 if (mainRotorIdx.length > 0) {
-                    const mainGeo = geo.clone();
-                    mainGeo.setIndex(new THREE.BufferAttribute(new IndexArrayType(mainRotorIdx), 1));
+                    const mainGeo = shareGeometryAttributes(geo, mainRotorIdx);
                     const mainMesh = new THREE.Mesh(mainGeo, mesh.material);
                     mainMesh.position.set(-mainCenter.x, -mainCenter.y, -mainCenter.z);
-                    mainMesh.castShadow = true;
-                    mainMesh.receiveShadow = true;
+                    mainMesh.castShadow = false;
+                    mainMesh.receiveShadow = false;
                     this.mainRotorPivot.add(mainMesh);
                 }
 
                 // Crear malla del Rotor de Cola
                 if (tailRotorIdx.length > 0) {
-                    const tailGeo = geo.clone();
-                    tailGeo.setIndex(new THREE.BufferAttribute(new IndexArrayType(tailRotorIdx), 1));
+                    const tailGeo = shareGeometryAttributes(geo, tailRotorIdx);
                     const tailMesh = new THREE.Mesh(tailGeo, mesh.material);
                     tailMesh.position.set(-tailCenter.x, -tailCenter.y, -tailCenter.z);
-                    tailMesh.castShadow = true;
-                    tailMesh.receiveShadow = true;
+                    tailMesh.castShadow = false;
+                    tailMesh.receiveShadow = false;
                     this.tailRotorPivot.add(tailMesh);
                 }
             }
@@ -143,6 +152,19 @@ export class HelicopterController {
 
         // Baliza estroboscópica superior y luces de navegación
         this._buildAviationLights();
+
+        // Sombra de contacto dinámica bajo el helicóptero (solo 24 triángulos en lugar de 627k en shadow map)
+        const shadowGeo = new THREE.CircleGeometry(4.2, 24);
+        const shadowMat = new THREE.MeshBasicMaterial({
+            color: 0x05070a,
+            transparent: true,
+            opacity: 0.55,
+            depthWrite: false
+        });
+        this.contactShadow = new THREE.Mesh(shadowGeo, shadowMat);
+        this.contactShadow.rotation.x = -Math.PI / 2;
+        this.contactShadow.position.set(this.heliGroup.position.x, 0.20, this.heliGroup.position.z);
+        this.scene.add(this.contactShadow);
 
         this.isLoaded = true;
     }
@@ -285,6 +307,7 @@ export class HelicopterController {
         // 3. Controles de vuelo cuando el selector está en modo HELICÓPTERO
         const canFly = this.currentRpmPct >= 55;
         let targetFwd = 0;
+        let targetStrafe = 0;
         let targetYawRate = 0;
         let targetRoll = 0;
 
@@ -304,13 +327,24 @@ export class HelicopterController {
                 targetFwd = -12.0;
             }
 
-            // Viraje / Guiñada (Flechas Izquierda / Derecha o Q / A)
-            if (inputManager.isPressed('ArrowLeft') || inputManager.isPressed('q')) {
-                targetYawRate = 1.25;
-                targetRoll = -0.18; // Alabeo en viraje
-            } else if (inputManager.isPressed('ArrowRight') || inputManager.isPressed('a')) {
-                targetYawRate = -1.25;
-                targetRoll = 0.18;
+            // Viraje y Alabeo Cíclico (Flechas Izquierda / Derecha)
+            if (inputManager.isPressed('ArrowLeft')) {
+                targetYawRate += 1.05;
+                targetRoll = -0.20;
+                targetStrafe = -5.5;
+            } else if (inputManager.isPressed('ArrowRight')) {
+                targetYawRate -= 1.05;
+                targetRoll = 0.20;
+                targetStrafe = 5.5;
+            }
+
+            // Pedales de Guiñada de Cola pura (Q / A)
+            if (inputManager.isPressed('q')) {
+                targetYawRate += 1.35;
+                if (targetRoll === 0) targetRoll = -0.08;
+            } else if (inputManager.isPressed('a')) {
+                targetYawRate -= 1.35;
+                if (targetRoll === 0) targetRoll = 0.08;
             }
         } else if (!canFly) {
             // Si se apaga el motor o bajan las RPM, desciende suavemente al suelo
@@ -340,11 +374,13 @@ export class HelicopterController {
         // 5. Integrar velocidad horizontal, rumbo y traslación en el mundo
         if (!isAirborne) {
             targetFwd *= 0.15;
+            targetStrafe = 0;
             targetYawRate *= 0.35;
             targetRoll = 0;
         }
 
         this.forwardSpeed += (targetFwd - this.forwardSpeed) * Math.min(1.0, dt * 3.2);
+        this.strafeSpeed += (targetStrafe - this.strafeSpeed) * Math.min(1.0, dt * 3.5);
         this.yawRate += (targetYawRate - this.yawRate) * Math.min(1.0, dt * 5.0);
 
         if (Math.abs(this.yawRate) > 0.001) {
@@ -356,12 +392,15 @@ export class HelicopterController {
 
         // En Helicopter.glb el morro apunta hacia -X local:
         // Al rotar por rotation.y, el vector frontal en el mundo es (-cos(rotY), 0, sin(rotY))
+        // y el vector lateral derecho (estribor) es (-sin(rotY), 0, -cos(rotY))
         const yaw = this.heliGroup.rotation.y;
         const forwardX = -Math.cos(yaw);
         const forwardZ = Math.sin(yaw);
+        const rightX = -Math.sin(yaw);
+        const rightZ = -Math.cos(yaw);
 
-        const dx = forwardX * this.forwardSpeed * dt;
-        const dz = forwardZ * this.forwardSpeed * dt;
+        const dx = (forwardX * this.forwardSpeed + rightX * this.strafeSpeed) * dt;
+        const dz = (forwardZ * this.forwardSpeed + rightZ * this.strafeSpeed) * dt;
         const dy = (this.altitude + hoverOffset) - this.heliGroup.position.y;
 
         // Limitar dentro del perímetro del mapa (-220 a 220m)
@@ -386,6 +425,15 @@ export class HelicopterController {
 
         this.tiltGroup.rotation.z = this.pitchAngle;
         this.tiltGroup.rotation.x = this.rollAngle;
+
+        // Actualizar sombra de contacto suave sobre el suelo/helipuerto
+        if (this.contactShadow) {
+            const agl = Math.max(0, this.heliGroup.position.y - groundY);
+            this.contactShadow.position.set(this.heliGroup.position.x, groundY + 0.03, this.heliGroup.position.z);
+            const sScale = Math.min(2.2, 1.0 + (agl / 25.0));
+            this.contactShadow.scale.set(sScale, sScale, 1);
+            this.contactShadow.material.opacity = Math.max(0.08, 0.58 - (agl / 45.0));
+        }
     }
 
     getTelemetry() {

@@ -23,12 +23,12 @@ export class CargoManager {
             massTon: 1.5,
             halfExtents: new THREE.Vector3(1.0, 0.7, 2.3),
             cornersLocal: [
-                new THREE.Vector3(0.95, 0.4, 1.45),
-                new THREE.Vector3(-0.95, 0.4, 1.45),
-                new THREE.Vector3(-0.95, 0.4, -1.45),
-                new THREE.Vector3(0.95, 0.4, -1.45)
+                new THREE.Vector3(0.95, 1.95, 1.55),
+                new THREE.Vector3(-0.95, 1.95, 1.55),
+                new THREE.Vector3(-0.95, 1.95, -1.55),
+                new THREE.Vector3(0.95, 1.95, -1.55)
             ],
-            hookTargetY: 2.25
+            hookTargetY: 2.85
         };
 
         // Grupo del artefacto de izado (balancín + anilla + eslingas)
@@ -96,7 +96,7 @@ export class CargoManager {
                 new THREE.Vector3(-0.55, 1.12, -0.08),
                 new THREE.Vector3(-0.55, 1.12, 0.08)
             ],
-            hookTargetY: 1.25
+            hookTargetY: 2.25
         };
 
         const barrierRigGroup = new THREE.Group();
@@ -139,7 +139,7 @@ export class CargoManager {
                 new THREE.Vector3(-0.38, 1.12, -0.16),
                 new THREE.Vector3(-0.38, 1.12, 0.16)
             ],
-            hookTargetY: 1.25
+            hookTargetY: 2.25
         };
 
         const hvacRigGroup = new THREE.Group();
@@ -180,7 +180,7 @@ export class CargoManager {
                 new THREE.Vector3(-0.22, 1.12, -0.16),
                 new THREE.Vector3(-0.22, 1.12, 0.16)
             ],
-            hookTargetY: 1.25
+            hookTargetY: 2.25
         };
 
         const subBoxRigGroup = new THREE.Group();
@@ -250,10 +250,10 @@ export class CargoManager {
                 pickupPos: new THREE.Vector3(16.0, 0.0, -20.0),
                 dropTarget: {
                     x: 28.0,
-                    y: 18.5,
+                    y: 12.2,
                     z: -20.0,
                     radius: 3.8,
-                    name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (18.4 M)'
+                    name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (12.2 M)'
                 }
             },
             {
@@ -305,10 +305,10 @@ export class CargoManager {
         if (hvacCargo && rooftopTarget) {
             hvacCargo.dropTarget = {
                 x: rooftopTarget.x,
-                y: rooftopTarget.y + 0.1,
+                y: rooftopTarget.y + 0.05,
                 z: rooftopTarget.z,
                 radius: 3.8,
-                name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (18.4 M)'
+                name: 'AZOTEA EDIFICIO RESIDENCIAL 001 (12.2 M)'
             };
         }
     }

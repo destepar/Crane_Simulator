@@ -1,18 +1,61 @@
-import { THREE } from './core/three.js?v=2.2';
-import { SceneManager } from './core/SceneManager.js?v=2.2';
-import { InputManager } from './core/InputManager.js?v=2.2';
-import { Environment } from './environment/Environment.js?v=2.2';
-import { CraneModel } from './crane/CraneModel.js?v=2.2';
-import { CraneController } from './crane/CraneController.js?v=2.2';
-import { WinchRigging } from './crane/WinchRigging.js?v=2.2';
-import { CargoManager } from './systems/CargoManager.js?v=2.2';
-import { MissionSystem } from './systems/MissionSystem.js?v=2.2';
-import { HelicopterController } from './systems/HelicopterController.js?v=2.2';
-import { HUDManager } from './ui/HUDManager.js?v=2.2';
+import { THREE } from './core/three.js';
+import { SceneManager } from './core/SceneManager.js';
+import { InputManager } from './core/InputManager.js';
+import { Environment } from './environment/Environment.js';
+import { CraneModel } from './crane/CraneModel.js';
+import { CraneController } from './crane/CraneController.js';
+import { WinchRigging } from './crane/WinchRigging.js';
+import { CargoManager } from './systems/CargoManager.js';
+import { MissionSystem } from './systems/MissionSystem.js';
+import { HelicopterController } from './systems/HelicopterController.js';
+import { HUDManager } from './ui/HUDManager.js';
+import { IntegratedReviewer } from './ui/IntegratedReviewer.js';
 
 class SimulatorApp {
     constructor() {
         this.activeVehicle = 'crane'; // 'crane' | 'helicopter'
+
+        // Estado cinemático en coma flotante para evitar cuantización por frame de inputs range
+        this.craneState = {
+            massTon: 10.0,
+            speed: 1.0,
+            rotDeg: 30.0,
+            ext: 35.0,
+            angDeg: 50.0
+        };
+
+        // Cachear referencias DOM para ciclo animate() libre de búsquedas DOM
+        this.dom = {
+            mainDashboard: document.getElementById('mainDashboard'),
+            rightTelemetryPanel: document.getElementById('rightTelemetryPanel'),
+            mainStatus: document.getElementById('mainStatus'),
+            fps: document.getElementById('fps'),
+            m: document.getElementById('m'),
+            v: document.getElementById('v'),
+            rot: document.getElementById('rot'),
+            ext: document.getElementById('ext'),
+            ang: document.getElementById('ang'),
+            valMass: document.getElementById('valMass'),
+            valSpeed: document.getElementById('valSpeed'),
+            valRot: document.getElementById('valRot'),
+            valExt: document.getElementById('valExt'),
+            valAng: document.getElementById('valAng'),
+            btnSelectCrane: document.getElementById('btnSelectCrane'),
+            btnSelectHeli: document.getElementById('btnSelectHeli'),
+            craneControlsGroup: document.getElementById('craneControlsGroup'),
+            heliControlsGroup: document.getElementById('heliControlsGroup'),
+            btnCam1: document.getElementById('btnCam1'),
+            cockpitRpmLabel: document.getElementById('cockpitRpmLabel'),
+            cockpitSteerLabel: document.getElementById('cockpitSteerLabel'),
+            btnHeliEngine: document.getElementById('btnHeliEngine'),
+            valHeliEngine: document.getElementById('valHeliEngine'),
+            heliRpm: document.getElementById('heliRpm'),
+            heliAlt: document.getElementById('heliAlt'),
+            heliYaw: document.getElementById('heliYaw'),
+            valHeliRpm: document.getElementById('valHeliRpm'),
+            valHeliAlt: document.getElementById('valHeliAlt'),
+            valHeliYaw: document.getElementById('valHeliYaw')
+        };
 
         this.sceneManager = new SceneManager();
         this.environment = new Environment(this.sceneManager.scene, () => {
@@ -35,21 +78,21 @@ class SimulatorApp {
         this.craneModel = new CraneModel(
             this.sceneManager.scene,
             (percent) => {
-                const statusEl = document.getElementById('mainStatus');
+                const statusEl = this.dom.mainStatus;
                 if (statusEl) {
                     statusEl.innerText = `CARGANDO GRÚA ${percent}%`;
                     statusEl.style.background = "#d29922";
                 }
             },
             () => {
-                const statusEl = document.getElementById('mainStatus');
+                const statusEl = this.dom.mainStatus;
                 if (statusEl) {
                     statusEl.innerText = "SISTEMA NOMINAL";
                     statusEl.style.background = "#2ea043";
                 }
             },
-            (err) => {
-                const statusEl = document.getElementById('mainStatus');
+            () => {
+                const statusEl = this.dom.mainStatus;
                 if (statusEl) {
                     if (window.location.protocol === 'file:') {
                         statusEl.innerText = "ERROR: USA START.BAT (HTTP)";
@@ -69,7 +112,11 @@ class SimulatorApp {
             () => this.handleAction()
         );
 
+        this._initCraneUIListeners();
         this._initHelicopterUIListeners();
+
+        // Inicializar Revisor Integrado en Navegador (Diagnóstico WebGL + Auto-Test E2E)
+        this.integratedReviewer = new IntegratedReviewer(this);
 
         // Exponer funciones al objeto global para botones HTML onclick
         window.setCameraMode = (mode) => this.setCameraMode(mode);
@@ -83,24 +130,73 @@ class SimulatorApp {
         requestAnimationFrame(this.animate);
     }
 
-    _initHelicopterUIListeners() {
-        const elHeliRpm = document.getElementById('heliRpm');
-        const elHeliAlt = document.getElementById('heliAlt');
-        const elHeliYaw = document.getElementById('heliYaw');
+    _initCraneUIListeners() {
+        if (this.dom.m) {
+            this.dom.m.addEventListener('input', () => {
+                this.craneState.massTon = parseFloat(this.dom.m.value);
+            });
+        }
+        if (this.dom.v) {
+            this.dom.v.addEventListener('input', () => {
+                this.craneState.speed = parseFloat(this.dom.v.value);
+            });
+        }
+        if (this.dom.rot) {
+            this.dom.rot.addEventListener('input', () => {
+                this.craneState.rotDeg = parseFloat(this.dom.rot.value);
+            });
+        }
+        if (this.dom.ext) {
+            this.dom.ext.addEventListener('input', () => {
+                this.craneState.ext = parseFloat(this.dom.ext.value);
+            });
+        }
+        if (this.dom.ang) {
+            this.dom.ang.addEventListener('input', () => {
+                this.craneState.angDeg = parseFloat(this.dom.ang.value);
+            });
+        }
+    }
 
-        if (elHeliRpm) {
-            elHeliRpm.addEventListener('input', () => {
-                this.helicopterController.targetRpmPct = parseFloat(elHeliRpm.value);
+    setCraneControls({ rotDeg, ext, angDeg, massTon, speed }) {
+        if (typeof rotDeg === 'number') {
+            this.craneState.rotDeg = rotDeg;
+            if (this.dom.rot) this.dom.rot.value = rotDeg.toFixed(1);
+        }
+        if (typeof ext === 'number') {
+            this.craneState.ext = Math.max(10, Math.min(60, ext));
+            if (this.dom.ext) this.dom.ext.value = this.craneState.ext.toFixed(1);
+        }
+        if (typeof angDeg === 'number') {
+            this.craneState.angDeg = Math.max(10, Math.min(85, angDeg));
+            if (this.dom.ang) this.dom.ang.value = this.craneState.angDeg.toFixed(1);
+        }
+        if (typeof massTon === 'number') {
+            this.craneState.massTon = massTon;
+            if (this.dom.m) this.dom.m.value = massTon.toFixed(1);
+        }
+        if (typeof speed === 'number') {
+            this.craneState.speed = speed;
+            if (this.dom.v) this.dom.v.value = speed.toFixed(1);
+        }
+    }
+
+    _initHelicopterUIListeners() {
+        const { heliRpm, heliAlt, heliYaw } = this.dom;
+
+        if (heliRpm) {
+            heliRpm.addEventListener('input', () => {
+                this.helicopterController.targetRpmPct = parseFloat(heliRpm.value);
             });
         }
-        if (elHeliAlt) {
-            elHeliAlt.addEventListener('input', () => {
-                this.helicopterController.targetAltitude = parseFloat(elHeliAlt.value);
+        if (heliAlt) {
+            heliAlt.addEventListener('input', () => {
+                this.helicopterController.targetAltitude = parseFloat(heliAlt.value);
             });
         }
-        if (elHeliYaw) {
-            elHeliYaw.addEventListener('input', () => {
-                const deg = parseFloat(elHeliYaw.value);
+        if (heliYaw) {
+            heliYaw.addEventListener('input', () => {
+                const deg = parseFloat(heliYaw.value);
                 this.helicopterController.heliGroup.rotation.y = deg * (Math.PI / 180);
             });
         }
@@ -110,21 +206,30 @@ class SimulatorApp {
         this.activeVehicle = vehicle;
         const isHeli = (vehicle === 'helicopter');
 
-        const btnCrane = document.getElementById('btnSelectCrane');
-        const btnHeli = document.getElementById('btnSelectHeli');
-        const craneGroup = document.getElementById('craneControlsGroup');
-        const heliGroup = document.getElementById('heliControlsGroup');
-        const btnCam1 = document.getElementById('btnCam1');
-        const rpmLabel = document.getElementById('cockpitRpmLabel');
-        const steerLabel = document.getElementById('cockpitSteerLabel');
+        const {
+            mainDashboard,
+            rightTelemetryPanel,
+            btnSelectCrane,
+            btnSelectHeli,
+            craneControlsGroup,
+            heliControlsGroup,
+            btnCam1,
+            cockpitRpmLabel,
+            cockpitSteerLabel
+        } = this.dom;
 
-        if (btnCrane) btnCrane.className = isHeli ? 'veh-btn' : 'veh-btn active';
-        if (btnHeli) btnHeli.className = isHeli ? 'veh-btn active' : 'veh-btn';
-        if (craneGroup) craneGroup.style.display = isHeli ? 'none' : 'flex';
-        if (heliGroup) heliGroup.style.display = isHeli ? 'flex' : 'none';
+        if (btnSelectCrane) btnSelectCrane.className = isHeli ? 'veh-btn' : 'veh-btn active';
+        if (btnSelectHeli) btnSelectHeli.className = isHeli ? 'veh-btn active' : 'veh-btn';
+        if (craneControlsGroup) craneControlsGroup.style.display = isHeli ? 'none' : 'flex';
+        if (heliControlsGroup) heliControlsGroup.style.display = isHeli ? 'flex' : 'none';
+        if (rightTelemetryPanel) rightTelemetryPanel.style.display = isHeli ? 'none' : 'flex';
+        if (mainDashboard) mainDashboard.classList.toggle('heli-mode', isHeli);
         if (btnCam1) btnCam1.innerText = isHeli ? '1: HELI' : '1: GRÚA';
-        if (rpmLabel) rpmLabel.innerText = isHeli ? 'TURBINA RPM' : 'DIÉSEL RPM';
-        if (steerLabel) steerLabel.innerText = isHeli ? 'RUMBO' : 'DIRECCIÓN';
+        if (cockpitRpmLabel) cockpitRpmLabel.innerText = isHeli ? 'TURBINA RPM' : 'DIÉSEL RPM';
+        if (cockpitSteerLabel) cockpitSteerLabel.innerText = isHeli ? 'RUMBO' : 'DIRECCIÓN';
+
+        // Recalcular dimensiones del canvas 3D al ocultar/mostrar la barra lateral derecha
+        this.sceneManager.handleResize();
 
         // Al seleccionar el helicóptero, asegurar que el motor esté encendido y enfocar la cámara
         if (isHeli && !this.helicopterController.engineOn) {
@@ -136,8 +241,8 @@ class SimulatorApp {
 
     toggleHeliEngine() {
         const isOn = this.helicopterController.toggleEngine();
-        const btn = document.getElementById('btnHeliEngine');
-        const badge = document.getElementById('valHeliEngine');
+        const btn = this.dom.btnHeliEngine;
+        const badge = this.dom.valHeliEngine;
         if (btn) {
             btn.className = isOn ? 'heli-action-btn active' : 'heli-action-btn';
             btn.innerText = isOn ? 'MOTOR GE T700: ACTIVO' : 'MOTOR GE T700: APAGADO';
@@ -150,7 +255,11 @@ class SimulatorApp {
 
     handleAction() {
         if (this.activeVehicle === 'crane') {
-            this.missionSystem.handleAction(this.winchRigging);
+            const tipWorld = this.craneModel.getTipWorldPosition();
+            this.missionSystem.handleAction(this.winchRigging, tipWorld);
+            if (this.winchRigging.isHooked && this.winchRigging.attachedCargo) {
+                this.craneState.massTon = this.winchRigging.attachedCargo.massTon;
+            }
         } else {
             this.toggleHeliEngine();
         }
@@ -179,63 +288,103 @@ class SimulatorApp {
 
         this.frameCount++;
         if (this.frameCount % 10 === 0) {
-            const fpsEl = document.getElementById('fps');
-            if (fpsEl) fpsEl.innerText = `FPS: ${Math.round(1 / Math.max(0.001, dt))}`;
+            if (this.dom.fps) {
+                this.dom.fps.innerText = `FPS: ${Math.round(1 / Math.max(0.001, dt))}`;
+            }
         }
 
         const isHeliActive = (this.activeVehicle === 'helicopter');
 
-        // 1. Controles de pluma de la grúa (solo responden a teclado cuando la grúa está activa)
-        const elRot = document.getElementById('rot');
-        const elExt = document.getElementById('ext');
-        const elAng = document.getElementById('ang');
-
+        // 1. Controles de pluma de la grúa con precisión continua y giro 360° sin bloqueo
         if (!isHeliActive) {
-            if (this.inputManager.isPressed('q')) elRot.value = parseFloat(elRot.value) - 45 * dt;
-            if (this.inputManager.isPressed('a')) elRot.value = parseFloat(elRot.value) + 45 * dt;
-            if (this.inputManager.isPressed('w')) elExt.value = parseFloat(elExt.value) + 15 * dt;
-            if (this.inputManager.isPressed('s')) elExt.value = parseFloat(elExt.value) - 15 * dt;
-            if (this.inputManager.isPressed('e')) elAng.value = parseFloat(elAng.value) + 20 * dt;
-            if (this.inputManager.isPressed('d')) elAng.value = parseFloat(elAng.value) - 20 * dt;
+            let changed = false;
+            if (this.inputManager.isPressed('q')) {
+                this.craneState.rotDeg -= 45 * dt;
+                if (this.craneState.rotDeg < -180) this.craneState.rotDeg += 360;
+                changed = true;
+            }
+            if (this.inputManager.isPressed('a')) {
+                this.craneState.rotDeg += 45 * dt;
+                if (this.craneState.rotDeg > 180) this.craneState.rotDeg -= 360;
+                changed = true;
+            }
+            if (this.inputManager.isPressed('w')) {
+                this.craneState.ext = Math.min(60, this.craneState.ext + 15 * dt);
+                changed = true;
+            }
+            if (this.inputManager.isPressed('s')) {
+                this.craneState.ext = Math.max(10, this.craneState.ext - 15 * dt);
+                changed = true;
+            }
+            if (this.inputManager.isPressed('e')) {
+                this.craneState.angDeg = Math.min(85, this.craneState.angDeg + 20 * dt);
+                changed = true;
+            }
+            if (this.inputManager.isPressed('d')) {
+                this.craneState.angDeg = Math.max(10, this.craneState.angDeg - 20 * dt);
+                changed = true;
+            }
+
+            if (changed) {
+                if (this.dom.rot && document.activeElement !== this.dom.rot) {
+                    this.dom.rot.value = this.craneState.rotDeg.toFixed(1);
+                }
+                if (this.dom.ext && document.activeElement !== this.dom.ext) {
+                    this.dom.ext.value = this.craneState.ext.toFixed(1);
+                }
+                if (this.dom.ang && document.activeElement !== this.dom.ang) {
+                    this.dom.ang.value = this.craneState.angDeg.toFixed(1);
+                }
+            }
         }
 
-        const massTon = parseFloat(document.getElementById('m').value);
-        const speed = parseFloat(document.getElementById('v').value);
-        const rotDeg = parseFloat(elRot.value);
-        const ext = parseFloat(elExt.value);
-        const angDeg = parseFloat(elAng.value);
+        // Sincronizar si un test o script externo modificó el value del DOM directamente
+        if (this.dom.rot && Math.abs(parseFloat(this.dom.rot.value) - this.craneState.rotDeg) > 0.25) {
+            this.craneState.rotDeg = parseFloat(this.dom.rot.value);
+        }
+        if (this.dom.ext && Math.abs(parseFloat(this.dom.ext.value) - this.craneState.ext) > 0.25) {
+            this.craneState.ext = parseFloat(this.dom.ext.value);
+        }
+        if (this.dom.ang && Math.abs(parseFloat(this.dom.ang.value) - this.craneState.angDeg) > 0.25) {
+            this.craneState.angDeg = parseFloat(this.dom.ang.value);
+        }
+        if (this.dom.m) {
+            this.craneState.massTon = parseFloat(this.dom.m.value);
+        }
+        if (this.dom.v) {
+            this.craneState.speed = parseFloat(this.dom.v.value);
+        }
 
+        const { massTon, speed, rotDeg, ext, angDeg } = this.craneState;
         const rotRad = rotDeg * (Math.PI / 180);
         const angRad = angDeg * (Math.PI / 180);
 
-        document.getElementById('valMass').innerText = massTon.toFixed(1);
-        document.getElementById('valSpeed').innerText = speed.toFixed(1);
-        document.getElementById('valRot').innerText = rotDeg.toFixed(1);
-        document.getElementById('valExt').innerText = ext.toFixed(1);
-        document.getElementById('valAng').innerText = angDeg.toFixed(1);
+        if (this.dom.valMass) this.dom.valMass.innerText = massTon.toFixed(1);
+        if (this.dom.valSpeed) this.dom.valSpeed.innerText = speed.toFixed(1);
+        if (this.dom.valRot) this.dom.valRot.innerText = rotDeg.toFixed(1);
+        if (this.dom.valExt) this.dom.valExt.innerText = ext.toFixed(1);
+        if (this.dom.valAng) this.dom.valAng.innerText = angDeg.toFixed(1);
 
         // 2. Actualizar controlador del vehículo Grúa (si está activa) y del Helicóptero UH-60
         if (!isHeliActive) {
             this.craneController.update(this.inputManager, dt, this.sceneManager.camera);
+        } else {
+            this.craneController.moveDist = 0;
         }
         this.helicopterController.update(dt, timeNow, this.inputManager, isHeliActive, this.sceneManager.camera);
 
         // Sincronizar badges y sliders del panel de helicóptero
         const heliTel = this.helicopterController.getTelemetry();
-        const elHeliAlt = document.getElementById('heliAlt');
-        const elHeliYaw = document.getElementById('heliYaw');
-        const valHeliRpm = document.getElementById('valHeliRpm');
-        const valHeliAlt = document.getElementById('valHeliAlt');
-        const valHeliYaw = document.getElementById('valHeliYaw');
+        const { heliAlt, heliYaw, valHeliRpm, valHeliAlt, valHeliYaw } = this.dom;
 
         if (valHeliRpm) valHeliRpm.innerText = `${Math.round(heliTel.rpmPct)}%`;
         if (valHeliAlt) valHeliAlt.innerText = heliTel.altitude.toFixed(1);
         if (valHeliYaw) valHeliYaw.innerText = `${heliTel.yawDeg}°`;
-        if (elHeliAlt && document.activeElement !== elHeliAlt) {
-            elHeliAlt.value = this.helicopterController.targetAltitude.toFixed(1);
+        if (heliAlt && document.activeElement !== heliAlt) {
+            heliAlt.value = this.helicopterController.targetAltitude.toFixed(1);
         }
-        if (elHeliYaw && document.activeElement !== elHeliYaw) {
-            elHeliYaw.value = heliTel.yawDeg;
+        if (heliYaw && document.activeElement !== heliYaw) {
+            heliYaw.value = heliTel.yawDeg;
         }
 
         // 3. Actualizar cinemática de la grúa
@@ -253,7 +402,8 @@ class SimulatorApp {
             speed,
             massTon,
             this.inputManager,
-            this.environment
+            this.environment,
+            rotRad
         );
 
         // 6. Actualizar misiones con ciclo de RECOGIDA y DEPÓSITO
@@ -272,8 +422,10 @@ class SimulatorApp {
             this.hudManager.updateCockpit(
                 heliTel.speedKmh,
                 heliTel.turbineRpm,
-                this.helicopterController.heliGroup.rotation.y * 0.25,
-                heliTel.forwardSpeed
+                this.helicopterController.heliGroup.rotation.y,
+                heliTel.forwardSpeed,
+                true,
+                heliTel.isAirborne
             );
         } else {
             const speedKmh = Math.round(Math.abs(this.craneController.vehicleSpeed) * 3.6);
@@ -281,19 +433,23 @@ class SimulatorApp {
                 speedKmh,
                 this.craneController.currentRpm,
                 this.craneController.steerAngle,
-                this.craneController.vehicleSpeed
+                this.craneController.vehicleSpeed,
+                false,
+                false
             );
         }
 
-        // 8. Actualizar telemetría LMI y potencia
+        // 8. Actualizar telemetría LMI y potencia (solo cuando la Grúa LTM está activa y el panel derecho es visible)
         const activeCargo = this.cargoManager.getActiveCargo();
-        this.hudManager.updateTelemetry(
-            rigState.effectiveMass,
-            speed,
-            ext,
-            angDeg,
-            null
-        );
+        if (!isHeliActive) {
+            this.hudManager.updateTelemetry(
+                rigState.effectiveMass,
+                speed,
+                ext,
+                angDeg,
+                null
+            );
+        }
 
         // 9. Seguimiento dinámico de cámara según modo y vehículo activo
         const currentTarget = this.missionSystem.getCurrentTarget();
@@ -306,8 +462,9 @@ class SimulatorApp {
             heliGroup: this.helicopterController.heliGroup
         });
 
-        // 10. Render final de la escena
+        // 10. Render final de la escena y actualización del Revisor Integrado
         this.sceneManager.render();
+        this.integratedReviewer.updateLiveMetrics(timeNow, dt);
     }
 }
 
